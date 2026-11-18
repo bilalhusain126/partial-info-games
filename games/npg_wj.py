@@ -36,4 +36,5 @@ if __name__ == '__main__':
     ref = None
     if W.H == 0:
         eta_ex, nu_ex, _, _, _ = W.exact_h0(S.exo_v['al'].numpy(), S.exo_v['dz'].numpy()); ref = [torch.tensor(eta_ex), torch.tensor(nu_ex)]
-    S.run(int(os.environ.get('ITERS', '8')), ref=ref)
+    vstate, vctrl, hist = S.run(int(os.environ.get('ITERS', '8')), ref=ref)
+    np.savez(os.environ.get('SAVE', '../results/wj_last.npz'), eta=vctrl[0].numpy(), nu=vctrl[1].numpy(), eta_ex=(ref[0].numpy() if ref else np.zeros(1)), nu_ex=(ref[1].numpy() if ref else np.zeros(1)), hist=np.array(hist))
