@@ -8,8 +8,8 @@ def last(pattern, log):
 def avg_errs(log):
     l = last(r'^it', log)
     if not l: return None
-    m = re.findall(r'avg\(\d+\): (.*?) \(', l); s = m[0] if m else re.findall(r'rel L2 vs ref: (.*?) \(', l)[0] if 'rel L2' in l else None
-    return dict(re.findall(r'(u\d|broker|avg flow|trader_i|eta|nu) ([\d.]+)', s)) if s else None
+    m = re.findall(r'avg\(\d+\): (.*?) \(', l) or re.findall(r'rel L2 (?:vs ref|vs closed form|error vs exact): (.*?)(?: \||$| \()', l)
+    return dict(re.findall(r'(u\d|broker|avg flow|trader_i|eta|nu) ([\d.]+)', m[0])) if m else None
 def rel(a, b): return float(np.sqrt(((a - b) ** 2).mean() / (b ** 2).mean()))
 
 out.append('# Batch summary\n')
