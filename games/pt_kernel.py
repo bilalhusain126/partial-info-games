@@ -14,7 +14,7 @@ channel, is included). Nash = fixed point of the damped best-response iteration 
 Usage: LAM=2 python3 pt_kernel.py   (env: LAM, N_STEPS, ITERS, RHO_DAMP, INNER, SAVE)
 Output: equilibrium coefficients and the controls along pt_game's validation paths (seed 7), compared with the learned solutions."""
 import os, sys, math, time, numpy as np, torch
-torch.set_default_dtype(torch.float64)
+torch.set_default_dtype(torch.float64); torch.set_default_device('cpu')
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import pt_game as P
 N, DT, LAM, A_, PHI, PSI, KAP, SA, SIG, VA0 = P.N, P.DT, P.LAM, P.A_, P.PHI, P.PSI, P.KAP, P.SA, P.SIG, P.VA0

@@ -90,8 +90,8 @@ class PTModel:
 
 def linear_picard_full(exo, iters=30, rho=0.5):
     """Full-information LQ Nash by linear regression Picard on features (1, a1, a2, q1, q2), float64 (exact for LQ up to grid)."""
-    M = PTModel(); m = exo['a1'].shape[0]; a1, a2 = exo['a1'].numpy().astype(np.float64), exo['a2'].numpy().astype(np.float64); dws = exo['dws'].numpy().astype(np.float64)
-    coef = [np.zeros((N, 5)) for _ in range(2)]; W = M.W.numpy().astype(np.float64)
+    M = PTModel(); m = exo['a1'].shape[0]; a1, a2 = exo['a1'].cpu().numpy().astype(np.float64), exo['a2'].cpu().numpy().astype(np.float64); dws = exo['dws'].cpu().numpy().astype(np.float64)
+    coef = [np.zeros((N, 5)) for _ in range(2)]; W = M.W.cpu().numpy().astype(np.float64)
     for it in range(iters):
         q = np.zeros((m, 2, N + 1)); nu = np.zeros((m, 2, N)); mu = np.zeros((m, N))
         for k in range(N):
@@ -118,11 +118,11 @@ if __name__ == '__main__':
         print(f'lam=0 exact reference: |nu| {np.abs(nu_ex).mean():.3f}', flush=True)
     elif INFO == 'full':
         nu_ex, chg = linear_picard_full(S.exo_v); ref = [torch.tensor(nu_ex[:, i], dtype=torch.float32) for i in range(2)]
-        print(f'full-info linear Picard reference: |nu| {np.abs(nu_ex).mean():.3f}, final change {chg:.1e}, |lam nu|/|alpha| {LAM * np.abs(nu_ex).mean() / np.abs(S.exo_v["a1"].numpy()).mean():.2f}', flush=True)
+        print(f'full-info linear Picard reference: |nu| {np.abs(nu_ex).mean():.3f}, final change {chg:.1e}, |lam nu|/|alpha| {LAM * np.abs(nu_ex).mean() / np.abs(S.exo_v["a1"].cpu().numpy()).mean():.2f}', flush=True)
     print(f'INFO={INFO} LAM={LAM} a={A_} N={N} M={S.m}', flush=True)
     vstate, vctrl, hist = S.run(ITERS, ref=ref)
     if os.environ.get('FOC_CHECK'):
         for i in range(2): foc_residual(S, i)
     if os.environ.get('EXPLOIT'):
         for i in range(2): g, J0 = exploitability(S, i, iters=int(os.environ.get('EXPLOIT_ITERS', '6'))); print(f'player {i}: exploitability {g:+.5f} relative to |cost| {abs(J0):.4f} ({100 * g / abs(J0):+.2f}%)', flush=True)
-    np.savez(os.environ.get('SAVE', '../results/pt_last.npz'), t=tg[:-1], nu1=vctrl[0].numpy(), nu2=vctrl[1].numpy(), a1=S.exo_v['a1'].numpy(), a2=S.exo_v['a2'].numpy(), q1=vstate['q1'].numpy(), q2=vstate['q2'].numpy(), nu_ex=(ref[0].numpy() if ref else np.zeros(1)), hist=np.array(hist))
+    np.savez(os.environ.get('SAVE', '../results/pt_last.npz'), t=tg[:-1], nu1=vctrl[0].cpu().numpy(), nu2=vctrl[1].cpu().numpy(), a1=S.exo_v['a1'].cpu().numpy(), a2=S.exo_v['a2'].cpu().numpy(), q1=vstate['q1'].cpu().numpy(), q2=vstate['q2'].cpu().numpy(), nu_ex=(ref[0].cpu().numpy() if ref else np.zeros(1)), hist=np.array(hist))

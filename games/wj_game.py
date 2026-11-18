@@ -8,7 +8,10 @@ information (trader: full state; broker: GRU over the price-increment path), dam
 Exact reference at h = 0: trader = Riccati ODEs (P, R); broker = Kalman-Bucy on (alpha, Q^I) + LQR Riccati on (Qhat^B, alphahat, Qhat^I).
 Usage: python3 wj_game.py <h> <T> [iters]"""
 import sys, os, math, time, numpy as np, torch, torch.nn as nn
-torch.set_num_threads(4); torch.manual_seed(0)
+torch.set_num_threads(int(os.environ.get('THREADS', '4'))); torch.manual_seed(0)
+DEVICE = os.environ.get('DEVICE', 'cuda' if torch.cuda.is_available() else 'cpu')   # DEVICE=cuda|mps|cpu; all new tensors go there
+torch.set_default_device(DEVICE)
+
 A_, B_, PHI, PSI, RB, RI, P_, KAP, SA, SIG, QB0, QI0 = float(os.environ.get('A_COST', '1.0')), float(os.environ.get('B_COST', '1.0')), 1.0, 1.0, 0.1, 0.1, 1.0, 1.0, 1.0, 0.5, 0.0, 0.0
 H = float(sys.argv[1]); T = float(sys.argv[2]); ITERS = int(sys.argv[3]) if len(sys.argv) > 3 else 15
 MODE = os.environ.get('BROKER', 'gru'); N = int(os.environ.get('N_STEPS', '40')); DT = T / N; M = int(os.environ.get('M_PATHS', '4096')); M_VAL = 2048; STEPS = int(os.environ.get('FIT_STEPS', '300'))
@@ -126,9 +129,9 @@ if __name__ == '__main__':
     al_tr, dz_tr, ah_tr, al_v, dz_v, ah_v = map(T_, (al_tr, dz_tr, ah_tr, al_v, dz_v, ah_v))
     brk = Broker(); trd = Trader(hid=brk.hid); rho = float(os.environ.get('RHO_DAMP', '0.7'))
     if H == 0:
-        eta_ex, nu_ex, _, _, XIv = exact_h0(al_v.numpy(), dz_v.numpy()); eta_ex, nu_ex = T_(eta_ex), T_(nu_ex)
+        eta_ex, nu_ex, _, _, XIv = exact_h0(al_v.cpu().numpy(), dz_v.cpu().numpy()); eta_ex, nu_ex = T_(eta_ex), T_(nu_ex)
         if MODE == 'exact':
-            _, _, _, _, XItr = exact_h0(al_tr.numpy(), dz_tr.numpy())
+            _, _, _, _, XItr = exact_h0(al_tr.cpu().numpy(), dz_tr.cpu().numpy())
             feats_tr, feats_v = T_(XItr), T_(XIv)
     if MODE == 'full':                                     # reference: linear-regression Picard on the full state (exact for this LQ game)
         def lin_rollout(al, cB, cI):
@@ -143,7 +146,7 @@ if __name__ == '__main__':
                 nu, eta, QB, QI, Y = lin_rollout(al, cB, cI); tI, tB = targets(al, nu, eta, QB, QI, Y)
                 for k in range(N):
                     X = torch.stack([torch.ones(al.shape[0]), al[:, k], QB[:, k], QI[:, k], Y[:, k]], 1).double()   # float64 lstsq (float32 gave ~6% artefacts)
-                    Xn = X.numpy(); ls = lambda y: torch.tensor(np.linalg.lstsq(Xn, y.double().numpy(), rcond=1e-6)[0], dtype=torch.float32)
+                    Xn = X.cpu().numpy(); ls = lambda y: torch.tensor(np.linalg.lstsq(Xn, y.double().cpu().numpy(), rcond=1e-6)[0], dtype=torch.float32)
                     cB[k] = (1 - rho) * cB[k] + rho * ls(tB[:, k])
                     cI[k] = (1 - rho) * cI[k] + rho * ls(tI[:, k])
             return cB, cI
@@ -168,6 +171,6 @@ if __name__ == '__main__':
             msg += f' | rel L2 error vs exact: eta {eI:.3f} nu {eB:.3f}'
         print(msg + f' ({time.time()-t0:.0f}s)', flush=True); prev = (nu_v, eta_v)
     print('nu scale', float(nu_v.abs().mean()), 'eta scale', float(eta_v.abs().mean()))
-    out = dict(t=tgrid[:-1], nu=nu_v.numpy(), eta=eta_v.numpy(), alpha=al_v.numpy(), QB=QBv.numpy(), QI=QIv.numpy(), Y=Yv.numpy())
-    if H == 0 or MODE == 'full': out.update(nu_ex=nu_ex.numpy(), eta_ex=eta_ex.numpy())
+    out = dict(t=tgrid[:-1], nu=nu_v.cpu().numpy(), eta=eta_v.cpu().numpy(), alpha=al_v.cpu().numpy(), QB=QBv.cpu().numpy(), QI=QIv.cpu().numpy(), Y=Yv.cpu().numpy())
+    if H == 0 or MODE == 'full': out.update(nu_ex=nu_ex.cpu().numpy(), eta_ex=eta_ex.cpu().numpy())
     np.savez(os.environ.get('SAVE', '../results/last.npz'), **out)

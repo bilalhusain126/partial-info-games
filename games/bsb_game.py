@@ -10,7 +10,10 @@ Information: trader i sees (alpha, alpha^i, Q^i) and the F^alpha-adapted mean-fi
 Usage: python3 bsb_game.py [iters]   (env: PARAMS=paper|gentle, M_PATHS, M_POP, FIT_STEPS, BATCH, N_STEPS)"""
 import os, sys, math, time, numpy as np, torch, torch.nn as nn
 from scipy.integrate import solve_ivp
-torch.set_num_threads(4); torch.manual_seed(0)
+torch.set_num_threads(int(os.environ.get('THREADS', '4'))); torch.manual_seed(0)
+DEVICE = os.environ.get('DEVICE', 'cuda' if torch.cuda.is_available() else 'cpu')   # DEVICE=cuda|mps|cpu; all new tensors go there
+torch.set_default_device(DEVICE)
+
 PAR = os.environ.get('PARAMS', 'gentle')
 if PAR == 'paper':  T, KA, SA, KI, SI, ETA_I, ETA_B, B_, A_I, A_B, PHI_I, PHI_B = 1.0, 5.0, 1.0, 5.0, 0.5, 1e-3, 1.2e-3, 1e-3, 1.0, 1.0, 1e-2, 1e-2
 else:               T, KA, SA, KI, SI, ETA_I, ETA_B, B_, A_I, A_B, PHI_I, PHI_B = 1.0, 1.0, 1.0, 1.0, 0.5, 0.1, 0.1, 0.05, 1.0, 1.0, 0.1, 0.1
@@ -115,4 +118,4 @@ if __name__ == '__main__':
             n_avg += 1; avg = [x.clone() for x in (nuBv, nubarv, nuiv)] if avg is None else [a + (x - a) / n_avg for a, x in zip(avg, (nuBv, nubarv, nuiv))]
             msg += f' | avg({n_avg}): broker {rel(avg[0], nuB_ex):.3f} avg flow {rel(avg[1], nubar_ex):.3f} trader_i {rel(avg[2], nui_ex):.3f}'
         print(msg + f' ({time.time()-t0:.0f}s)', flush=True); prev = (nuBv, nuiv)
-    np.savez(os.environ.get('SAVE', '../results/bsb_last.npz'), t=tg[:-1], nuB=nuBv.numpy(), nuB_ex=nuB_ex.numpy(), nubar=nubarv.numpy(), nubar_ex=nubar_ex.numpy(), nui=nuiv[:, 0].numpy(), nui_ex=nui_ex[:, 0].numpy())
+    np.savez(os.environ.get('SAVE', '../results/bsb_last.npz'), t=tg[:-1], nuB=nuBv.cpu().numpy(), nuB_ex=nuB_ex.cpu().numpy(), nubar=nubarv.cpu().numpy(), nubar_ex=nubar_ex.cpu().numpy(), nui=nuiv[:, 0].cpu().numpy(), nui_ex=nui_ex[:, 0].cpu().numpy())

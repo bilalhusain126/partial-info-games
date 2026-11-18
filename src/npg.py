@@ -11,6 +11,9 @@ A Model supplies:
 Solver: simulate under current policies, evaluate brackets, damp, regress each player's policy on its own information, repeat."""
 import os, math, time, numpy as np, torch, torch.nn as nn
 torch.set_num_threads(int(os.environ.get('THREADS', '4')))
+DEVICE = os.environ.get('DEVICE', 'cuda' if torch.cuda.is_available() else 'cpu')   # DEVICE=cuda|mps|cpu; all new tensors go there
+torch.set_default_device(DEVICE)
+
 
 def mlp(i, o, h=64): return nn.Sequential(nn.Linear(i, h), nn.Tanh(), nn.Linear(h, h), nn.Tanh(), nn.Linear(h, o))
 class Policy(nn.Module):

@@ -1,14 +1,15 @@
 #!/bin/bash
 # Fourth batch: two-trader runs at lam > 0 redone with the corrected first-order condition (the lam q_i(t) term). Submit from scripts/: sbatch narval_batch4.sh
 #SBATCH --account=def-ankush
-#SBATCH --time=12:00:00
+#SBATCH --time=6:00:00
+#SBATCH --gpus-per-node=1
 #SBATCH --cpus-per-task=16
 #SBATCH --mem=48G
-#SBATCH --job-name=pig-batch4
+#SBATCH --job-name=pig-batch4gpu
 #SBATCH --output=logs/%x_%j.out
 module load StdEnv/2023 python/3.11 scipy-stack
 source ~/envs/lfc/bin/activate
-export THREADS=2
+export THREADS=2; export DEVICE=cuda
 cd "$SLURM_SUBMIT_DIR/../games"; mkdir -p ../results
 # private lam=2, three seeds, FOC check
 for sd in 1 2 3; do

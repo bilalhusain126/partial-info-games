@@ -86,7 +86,7 @@ def kernel(A, B):
 
 def brackets_np(X0, XI):
     """Pathwise first-order conditions: u = -(1/R) sum_j W[j,k] Q (x_j - target_j)."""
-    W0, Wi = kernel(A0, B0).numpy().astype(np.float64), kernel(A_, B_).numpy().astype(np.float64)
+    W0, Wi = kernel(A0, B0).cpu().numpy().astype(np.float64), kernel(A_, B_).cpu().numpy().astype(np.float64)
     g0 = Q0 * (X0[:, :-1] - ETA0); gi = Q_ * (XI[:, :-1] - H1 * X0[:, :-1] - ETA)   # cost integrand on [t_j, t_{j+1}) uses x_j
     return -(g0 @ W0) / R0, -(gi @ Wi) / R_
 
@@ -136,11 +136,11 @@ if __name__ == '__main__':
         print(f'{rel(fi, ui_ex):.4f}'); sys.exit()
     M = FCModel(); S = Solver(M, hid=32, rho=float(os.environ.get('RHO_DAMP', '0.7')), lr=1e-3, batch=int(os.environ.get('BATCH', '1024')), steps=int(os.environ.get('STEPS', '1500')),
                               m_paths=int(os.environ.get('M_PATHS', '8192')), m_val=2048)
-    u0_ex, ui_ex, *_ = reference_paths(ref, {k: v.numpy().astype(np.float64) for k, v in S.exo_v.items()})
+    u0_ex, ui_ex, *_ = reference_paths(ref, {k: v.cpu().numpy().astype(np.float64) for k, v in S.exo_v.items()})
     from npg import exploitability, foc_residual
     vstate, vctrl, hist = S.run(int(sys.argv[1]) if len(sys.argv) > 1 else 10, ref=[torch.tensor(u0_ex, dtype=torch.float32), torch.tensor(ui_ex, dtype=torch.float32)])
     if os.environ.get('FOC_CHECK'):
         for i in range(2): foc_residual(S, i)
     if os.environ.get('EXPLOIT'):
         for i in range(2): g, J0 = exploitability(S, i, iters=int(os.environ.get('EXPLOIT_ITERS', '6'))); print(f'player {i}: exploitability {g:+.5f} relative to cost {J0:.4f} ({100 * g / J0:+.2f}%)', flush=True)
-    np.savez(os.environ.get('SAVE', '../results/fc_last.npz'), t=tg[:-1], u0=vctrl[0].numpy(), u0_ex=u0_ex, ui=vctrl[1].numpy(), ui_ex=ui_ex, hist=np.array(hist))
+    np.savez(os.environ.get('SAVE', '../results/fc_last.npz'), t=tg[:-1], u0=vctrl[0].cpu().numpy(), u0_ex=u0_ex, ui=vctrl[1].cpu().numpy(), ui_ex=ui_ex, hist=np.array(hist))
