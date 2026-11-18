@@ -114,3 +114,23 @@ def exploitability(S, i, iters=6, steps=None, m_eval=4096, log=lambda m: print(m
     gain = float(J0 - J); S.steps = steps0
     for p, q in zip(S.pols, orig): p.load_state_dict(q.state_dict()); p.requires_grad_(True)
     return gain, float(J0)
+
+def foc_residual(S, i, steps=None, m_fresh=None, log=lambda m: print(m, flush=True)):
+    """First-order-condition check for player i: on fresh paths simulated under the current controls, fit a new, independently
+    initialised network to player i's undamped target E[bracket | own path] (no Picard feedback), and return the relative L2
+    distance between this independent regression and the current control on the validation paths. Its floor is the regression
+    noise, which the exact-reference cases calibrate."""
+    import copy
+    M = S.M; m = m_fresh or S.m; exo_f = M.exo(m, 23 + i)
+    state, ctrl, seqs = S.rollout(exo_f)
+    target = M.bracket(i, exo_f, state, ctrl)
+    saved = [copy.deepcopy(p) for p in S.pols]; fresh = Policy(M.d_now[i], M.d_seq[i], S.pols[i].hid if S.pols[i].gru is not None else 32)
+    S.pols[i] = fresh; steps0, rho0 = S.steps, getattr(S, 'rho_n', S.rho); S.steps = steps or 2 * steps0; S.rho_n = 1.0
+    targets = [target if j == i else ctrl[j] for j in range(M.n_players)]
+    for p in S.pols: p.requires_grad_(False)
+    fresh.requires_grad_(True); loss = S.fit(exo_f, state, ctrl, targets, seqs)
+    _, vfresh, _ = S.rollout(S.exo_v); S.pols[i] = saved[i]
+    for p, q in zip(S.pols, saved): p.load_state_dict(q.state_dict()); p.requires_grad_(True)
+    _, vcur, _ = S.rollout(S.exo_v); S.steps, S.rho_n = steps0, rho0
+    d = float(((vfresh[i] - vcur[i]) ** 2).mean().sqrt() / (vcur[i] ** 2).mean().sqrt())
+    log(f'  FOC residual player {i}: independent regression vs current control, rel L2 {d:.4f} (fit loss {loss:.2e})'); return d
