@@ -2,8 +2,9 @@
 \usepackage[margin=1in]{geometry}
 \usepackage{amsmath,amssymb,amsthm}
 \usepackage{xcolor}
-\usepackage{algorithm}
-\usepackage{algpseudocode}
+\usepackage[ruled,vlined]{algorithm2e}
+\SetKw{KwBreak}{break}
+\usepackage{enumitem}
 \usepackage{hyperref}
 
 \newcommand{\E}{\mathbb{E}}
@@ -50,7 +51,7 @@ over $\mathcal{A}^i$, where $r^i$ is the running reward and $g^i$ the terminal r
 \subsection{First order condition}
 \label{sec:foc}
 
-We fix $u^{-i}$ and assume that $J^i[\,\cdot\,, u^{-i}]$ is strictly concave on $\mathcal{A}^i$. Then the optimal control of player $i$ is unique and is characterized by a first order condition. We denote by $H^i(t, x, u, p) = r^i(t, x, u) + p\T \mu(t, x, u)$ the Hamiltonian of player $i$, and by $(P^i, Q^i)$ the adjoint processes, which solve
+We fix $u^{-i}$ and assume that $J^i[\,\cdot\,, u^{-i}]$ is strictly concave on $\mathcal{A}^i$, so that the optimal control of player $i$ is characterized by a first order condition. We denote by $H^i(t, x, u, p) = r^i(t, x, u) + p\T \mu(t, x, u)$ the Hamiltonian of player $i$, and by $(P^i, Q^i)$ the adjoint processes, which solve
 \begin{equation}
   \label{eq:adjoint}
   dP^i_t = - \partial_x H^i(t, X_t, u_t, P^i_t) \, dt + Q^i_t \, dW_t , \qquad P^i_T = \partial_x g^i(X_T) .
@@ -60,19 +61,15 @@ Since admissible perturbations of $u^i$ are $\mathbb{F}^i$-adapted, the first or
   \label{eq:foc}
   \E\big[ \partial_{u^i} H^i(t, X_t, u_t, P^i_t) \,\big|\, \F^i_t \big] = 0 .
 \end{equation}
-\textcolor{red}{Cite the partially observed stochastic maximum principle.}
+The state equation \eqref{eq:state}, the adjoint equations \eqref{eq:adjoint} and the conditions \eqref{eq:foc}, for $i = 1, \dots, n$, form a forward-backward system. The forward equation is shared, and each control is determined on its own filtration. \textcolor{red}{Cite the partially observed stochastic maximum principle.}
 
-We now assume that $\mu$ is linear in $(x, u)$ and that $r^i$ is quadratic in $u^i$, with $\partial_{u^i} r^i = - 2 a_i u^i_t + b^i(t, X_t, u^{-i}_t)$ and $a_i > 0$. Then $P^i$ is a conditional expectation of an integral of the future rewards, and \eqref{eq:foc} gives
+In the examples we consider, $\mu$ is linear in $(x, u)$ and $r^i$ is quadratic in $u^i$, with $\partial_{u^i} r^i = - 2 a_i u^i_t + b^i(t, X_t, u^{-i}_t)$ and $a_i > 0$. Then $P^i$ is an explicit integral of the future rewards and \eqref{eq:foc} gives
 \begin{equation}
   \label{eq:control}
-  u^i_t = \frac{1}{2 a_i} \E\big[ \Lambda^i_t \,\big|\, \F^i_t \big] ,
-\end{equation}
-where
-\begin{equation}
-  \label{eq:lambda}
+  u^i_t = \frac{1}{2 a_i} \E\big[ \Lambda^i_t \,\big|\, \F^i_t \big] , \qquad
   \Lambda^i_t = b^i(t, X_t, u^{-i}_t) + \int_t^T \Phi^i(s, t)\T \partial_x r^i(s, X_s, u_s) \, ds + \Phi^i(T, t)\T \partial_x g^i(X_T) ,
 \end{equation}
-and $\Phi^i(s, t)$ is the deterministic sensitivity of $X_s$ to $u^i_t$. The random variable $\Lambda^i_t$ depends on the future of the game, including the future controls of player $i$. Thus, \eqref{eq:control} characterizes the optimal control but does not give it explicitly.
+where $\Phi^i(s, t)$ is the deterministic sensitivity of $X_s$ to $u^i_t$. The random variable $\Lambda^i_t$ depends on the future of the game, including the future controls of player $i$. Thus, \eqref{eq:control} characterizes the optimal control but does not give it explicitly.
 
 \subsection{Equilibrium as a fixed point}
 \label{sec:fixed-point}
@@ -82,7 +79,7 @@ The controls $u^\star$ form a Nash equilibrium if $J^i[u^{i\star}, u^{-i\star}] 
   \label{eq:psi}
   \big( \Psi(u) \big)^i_t = \frac{1}{2 a_i} \E\big[ \Lambda^i_t[u] \,\big|\, \F^i_t \big] , \qquad i = 1, \dots, n ,
 \end{equation}
-where $\Lambda^i_t[u]$ is \eqref{eq:lambda} evaluated under the controls $u$. Under the concavity assumption, $u$ is a Nash equilibrium if and only if it is a fixed point of $\Psi$. The system \eqref{eq:state}, \eqref{eq:adjoint} and \eqref{eq:foc}, for $i = 1, \dots, n$, is the corresponding forward-backward system, in which each control is determined on its own filtration. \textcolor{red}{For $n = 2$, compare with Wu and Jaimungal (2024); verify the reference.}
+where $\Lambda^i_t[u]$ is \eqref{eq:control} evaluated under the controls $u$. Under the concavity assumption, $u$ is a Nash equilibrium if and only if it is a fixed point of $\Psi$. The system \eqref{eq:state}, \eqref{eq:adjoint} and \eqref{eq:foc}, for $i = 1, \dots, n$, is the corresponding forward-backward system, in which each control is determined on its own filtration. \textcolor{red}{For $n = 2$, compare with Wu and Jaimungal (2024); verify the reference.}
 
 \subsection{Conditional expectations by regression}
 \label{sec:regression}
@@ -113,26 +110,49 @@ At each iteration, we initialize each network with the parameters of the previou
 
 The network of player $i$ takes only $O^i$ as input. The unobserved processes, including the other players' observations, enter only through the target $\Lambda^i$. No filter, and no estimate of the other players' estimates, is computed explicitly.
 
-\subsection{Accuracy}
-\label{sec:accuracy}
+\subsection{Algorithm summary}
+\label{sec:algorithm}
 
-When the game is linear-quadratic and the equilibrium is known in closed form, we report the relative $L^2$ error of each learned control on test paths. Otherwise, we report the exploitability. We fix $u^{-i}$, re-solve the problem of player $i$ with a larger budget, and record the gain in $J^i$. If the gain is at most $\varepsilon$ for every player, the controls form an $\varepsilon$-Nash equilibrium, up to the error of the re-solved problem.
+The computational procedure is as follows.
+\begin{enumerate}[itemsep=4pt]
+    \item \textit{Initialization:} Fix the time grid $t_j = j \Delta t$, $j = 0, \dots, N$. For each player $i$, create a recurrent network $\mathcal{N}^i(\cdot\,; \theta^{i,(0)})$ with randomly initialized parameters.
+
+    \item \textit{Picard iteration loop:} For $k = 0, 1, \dots, K - 1$:
+        \begin{enumerate}[label=(\alph*), itemsep=4pt]
+            \item \textit{Forward simulation:} Simulate $M$ paths of the noise. Evolve the state \eqref{eq:state} by the Euler--Maruyama scheme, where at each step the control of player $i$ is the output of $\mathcal{N}^i(\cdot\,; \theta^{i,(k)})$ on the observed path $O^{i,(m)}_{[0, t_j]}$. Store the state paths, the controls $u^{i,(m,k)}_{t_j}$ and the observed paths.
+
+            \item \textit{Targets:} For every player $i$, path $m$ and time step $t_j$, evaluate the pathwise functional $\Lambda^{i,(m,k)}_j$ of \eqref{eq:control} by a Riemann sum along the path.
+
+            \item \textit{Regression:} For every player $i$, initialize $\mathcal{N}^i(\cdot\,; \theta^{i,(k+1)})$ with the parameters $\theta^{i,(k)}$ and train it on the inputs $\{O^{i,(m)}_{[0, t_j]}\}$ and the targets $\{(1 - \rho)\, u^{i,(m,k)}_{t_j} + \tfrac{\rho}{2 a_i} \Lambda^{i,(m,k)}_j\}$ by minimizing the mean squared error \eqref{eq:loss}.
+
+            \item \textit{Convergence check:} Simulate validation paths with the new networks and compute the root mean square change of the controls between iterations $k$ and $k + 1$. Stop if it falls below a tolerance $\epsilon_{\mathrm{tol}}$.
+        \end{enumerate}
+
+    \item \textit{Return:} Return the networks $\mathcal{N}^i(\cdot\,; \theta^{i,(K)})$, or the average of the controls of the last iterates along the validation paths.
+\end{enumerate}
 
 \begin{algorithm}[H]
-  \caption{Deep Picard regression for a Nash equilibrium under asymmetric information}
-  \label{alg:main}
-  \begin{algorithmic}[1]
-    \Statex \textbf{Input:} simulator of \eqref{eq:state}; observations $O^i$; functionals $\Lambda^i$; paths $M$; iterations $K$; damping $\rho$; regression steps $S$
-    \Statex \textbf{Output:} networks $\mathcal{N}^i(\cdot\,; \theta^i)$, $i = 1, \dots, n$
-    \For{$k = 0, \dots, K - 1$}
-      \State simulate $M$ paths of $X$ under $u^{i,(k)}_{t_j} = \mathcal{N}^i(t_j, O^i_{[0, t_j]}; \theta^{i,(k)})$, $i = 1, \dots, n$
-      \State evaluate $\Lambda^{i,(m,k)}_j$ on every path, for all $i$ and $j$
-      \For{$i = 1, \dots, n$}
-        \State take $S$ gradient steps on $\mathcal{L}^i(\theta^i)$ from $\theta^{i,(k)}$, giving $\theta^{i,(k+1)}$
-      \EndFor
-    \EndFor
-    \State average the controls of the last iterates
-  \end{algorithmic}
+    \caption{Deep Picard regression for a Nash equilibrium under asymmetric information}
+    \label{alg:main}
+    \BlankLine
+    \KwIn{Hyperparameters $M, N, K, \rho, S, \epsilon_{\mathrm{tol}}$; simulator of \eqref{eq:state}; observation maps $O^i$; functionals $\Lambda^i$.}
+    \KwOut{Networks $\mathcal{N}^i(\cdot\,; \theta^i)$, $i = 1, \dots, n$.}
+    \BlankLine
+    Initialize networks $\mathcal{N}^i(\cdot\,; \theta^{i,(0)})$ with random parameters, $i = 1, \dots, n$\;
+    \BlankLine
+    \For{$k \leftarrow 0$ \KwTo $K - 1$}{
+        Simulate $M$ paths of $X$ with $u^{i,(k)}_{t_j} = \mathcal{N}^i(t_j, O^i_{[0, t_j]}; \theta^{i,(k)})$ for all $i$\;
+        \For{$i \leftarrow 1$ \KwTo $n$}{
+            Compute targets for all $m, j$: $\mathcal{T}^i[j, m] \leftarrow (1 - \rho)\, u^{i,(m,k)}_{t_j} + \frac{\rho}{2 a_i} \Lambda^{i,(m,k)}_j$\;
+            Initialize $\mathcal{N}^i(\cdot\,; \theta^{i,(k+1)})$ with parameters $\theta^{i,(k)}$\;
+            Train $\mathcal{N}^i(\cdot\,; \theta^{i,(k+1)})$ for $S$ gradient steps on inputs $\{O^{i,(m)}_{[0, t_j]}\}$ and targets $\{\mathcal{T}^i[j, m]\}$\;
+        }
+        Simulate validation paths with the new networks\;
+        \If{$\| u^{(k+1)} - u^{(k)} \|_{\mathrm{RMSE}} < \epsilon_{\mathrm{tol}}$}{
+            \KwBreak\;
+        }
+    }
+    \Return $\mathcal{N}^i(\cdot\,; \theta^{i,(k+1)})$, $i = 1, \dots, n$\;
 \end{algorithm}
 
 \begin{remark}
