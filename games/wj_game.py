@@ -124,7 +124,7 @@ if __name__ == '__main__':
     ah_tr, ah_v = kalman_alpha(dz_tr), kalman_alpha(dz_v)
     T_ = lambda x: torch.tensor(x, dtype=torch.float32)
     al_tr, dz_tr, ah_tr, al_v, dz_v, ah_v = map(T_, (al_tr, dz_tr, ah_tr, al_v, dz_v, ah_v))
-    brk = Broker(); trd = Trader(hid=brk.hid); rho = 0.7
+    brk = Broker(); trd = Trader(hid=brk.hid); rho = float(os.environ.get('RHO_DAMP', '0.7'))
     if H == 0:
         eta_ex, nu_ex, _, _, XIv = exact_h0(al_v.numpy(), dz_v.numpy()); eta_ex, nu_ex = T_(eta_ex), T_(nu_ex)
         if MODE == 'exact':
@@ -137,7 +137,7 @@ if __name__ == '__main__':
                 X = torch.stack([torch.ones(m), al[:, k], QB[:, k], QI[:, k], Y[:, k]], 1); nu[:, k] = X @ cB[k]; eta[:, k] = X @ cI[k]
                 QB[:, k + 1] = QB[:, k] + (nu[:, k] - eta[:, k]) * DT; QI[:, k + 1] = QI[:, k] + eta[:, k] * DT; Y[:, k + 1] = Y[:, k] + (H * nu[:, k] - P_ * Y[:, k]) * DT
             return nu, eta, QB, QI, Y
-        def lin_picard(al, iters=60, rho=0.7):
+        def lin_picard(al, iters=60, rho=float(os.environ.get('RHO_REF', '0.7'))):
             cB = torch.zeros(N, 5); cI = torch.zeros(N, 5)
             for it in range(iters):
                 nu, eta, QB, QI, Y = lin_rollout(al, cB, cI); tI, tB = targets(al, nu, eta, QB, QI, Y)
