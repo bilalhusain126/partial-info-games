@@ -36,7 +36,7 @@ def reference_lam0():
     for k in range(N):
         K[k] = V / (V * DT + SIG ** 2); Vp = V - K[k] * DT * V; V = (1 - KAP * DT) ** 2 * Vp + SA ** 2 * DT; Vs[k + 1] = V
     # z_{k+1} = F_k z_k + G nu_k + noise;  alphahat_{k+1} = (1 - kappa dt)[alphahat + K (dY - alphahat dt)],  dY = alpha_j dt + sig dW
-    Fz = lambda k: np.array([[1.0, 0, 0], [0, 1 - KAP * DT, 0], [0, 0, (1 - KAP * DT) * (1 - K[k] * DT)]])
+    Fz = lambda k: np.array([[1.0, 0, 0], [0, 1 - KAP * DT, 0], [0, 0, 1 - KAP * DT]])   # own filter: innovation has zero conditional mean, so the drift is the signal's
     Gz = np.array([DT, 0.0, 0.0]); cz = lambda k: np.zeros(3)
     # cost to MINIMISE: -(q (alpha_i + alphahat_j)) + phi q^2 + a nu^2 per unit time, terminal psi q^2
     Qz = np.array([[PHI, -0.5, -0.5], [-0.5, 0, 0], [-0.5, 0, 0]]); qz = np.zeros(3)
