@@ -1,0 +1,9 @@
+results/npz/
+results/*.npz
+results/logs/
+__pycache__/
+*.pyc
+*.aux
+*.log
+*.out
+*.synctex.gz
