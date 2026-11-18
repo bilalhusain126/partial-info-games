@@ -57,3 +57,10 @@ Trading intensity, mean |nu| over paths and time: private 0.167, full informatio
 - Seed-average test, lam = 0, 8k paths, CV: single-seed errors trader 1 [5.2, 4.7, 4.7]%, trader 2 [5.8, 5.4, 5.3]%; three-seed averaged control 4.2% / 4.8%; pure variance would give ~2.8%. A finite-sample bias of ~4% at 8k, which the 32k single-seed result (3.7% / 3.2%) shows is not a fixed floor.
 - FOC residual vs true error under strong coupling, full information lam = 2, 8k paths, CV: residual 1.7% / 1.9%, true error 4.0% / 4.2% (factor ~2.3). The residual underestimates the error at strong coupling; at lam = 0 the factor was ~1.5. Applied to the private lam = 2 case, residuals of 6-8% suggest a true error of 10-15%.
 - Open: the full-information lam = 2 run has negligible regression noise (loss 5e-5) yet a 4% systematic gap to the linear-Picard reference.
+
+## Corrected two-trader game (first-order condition with the direct lam q_i term), 2026-11-19
+
+- Independent exact-class benchmark (games/pt_kernel.py): linear strategies on each trader's own observed path, all processes as loadings on the Gaussian shocks, best response by exact quadratic minimisation, damped simultaneous iteration with continuation in lam. Checks: lam = 0 closed form reproduced to 0.04%; full information lam = 2 agrees with the (corrected) linear-regression Picard to 2.9%; each trader's cost is positive semidefinite in its strategy at lam = 1 and 2 (no negative Hessian eigenvalues), so the fixed points are equilibria.
+- lam = 2 is an edge case: psi - lam/2 = 0 (the own-impact term cancels the terminal penalty); strategies four times larger and the private-vs-full comparison flips. Headline private case moved to lam = 1.
+- Private vs full information at lam = 1, from the kernel solutions alone: mean |nu| 0.177 vs 0.218, i.e. traders trade 19% less under private signals; relative L2 distance between the two strategies 62%.
+- Learned private strategy at lam = 1 (8k paths, 1000 steps, control variate, laptop) vs kernel: 7.4% / 5.4% (correlation 0.998, slope 0.96); mean |nu| 0.169 (22% below full information). FOC residuals 11.8% / 8.1%. Cluster seeds at 16k pending (batch 4).
