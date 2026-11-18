@@ -50,3 +50,10 @@ Trading intensity, mean |nu| over paths and time: private 0.167, full informatio
 - wj_strong_h0_gru: eta 0.739, nu 3.456
 - wj_strong_h1_full: eta 0.089, nu 0.073
 - wj_strong_h1_gru: it 14 loss 2.71e-01 change 0.0968 | BR residual (pathwise) trader 0.473 broker 1.009 (5284s)
+
+## Follow-ups (laptop, 2026-11-18 evening)
+
+- Bergault-SB reference check (regress bracket on the exact features along closed-form paths, 16k paths, population 32): broker 1.9%, trader 3.2%. Reference consistent.
+- Seed-average test, lam = 0, 8k paths, CV: single-seed errors trader 1 [5.2, 4.7, 4.7]%, trader 2 [5.8, 5.4, 5.3]%; three-seed averaged control 4.2% / 4.8%; pure variance would give ~2.8%. A finite-sample bias of ~4% at 8k, which the 32k single-seed result (3.7% / 3.2%) shows is not a fixed floor.
+- FOC residual vs true error under strong coupling, full information lam = 2, 8k paths, CV: residual 1.7% / 1.9%, true error 4.0% / 4.2% (factor ~2.3). The residual underestimates the error at strong coupling; at lam = 0 the factor was ~1.5. Applied to the private lam = 2 case, residuals of 6-8% suggest a true error of 10-15%.
+- Open: the full-information lam = 2 run has negligible regression noise (loss 5e-5) yet a 4% systematic gap to the linear-Picard reference.
