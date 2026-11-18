@@ -10,7 +10,7 @@ Usage: python3 wj_game.py <h> <T> [iters]"""
 import sys, os, math, time, numpy as np, torch, torch.nn as nn
 torch.set_num_threads(int(os.environ.get('THREADS', '4'))); torch.manual_seed(0)
 DEVICE = os.environ.get('DEVICE', 'cuda' if torch.cuda.is_available() else 'cpu')   # DEVICE=cuda|mps|cpu; all new tensors go there
-torch.set_default_device(DEVICE)
+torch.set_default_device(DEVICE); print(f'device {DEVICE}', flush=True)
 
 A_, B_, PHI, PSI, RB, RI, P_, KAP, SA, SIG, QB0, QI0 = float(os.environ.get('A_COST', '1.0')), float(os.environ.get('B_COST', '1.0')), 1.0, 1.0, 0.1, 0.1, 1.0, 1.0, 1.0, 0.5, 0.0, 0.0
 H = float(sys.argv[1]); T = float(sys.argv[2]); ITERS = int(sys.argv[3]) if len(sys.argv) > 3 else 15

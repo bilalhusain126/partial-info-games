@@ -12,7 +12,7 @@ import os, sys, math, time, numpy as np, torch, torch.nn as nn
 from scipy.integrate import solve_ivp
 torch.set_num_threads(int(os.environ.get('THREADS', '4'))); torch.manual_seed(0)
 DEVICE = os.environ.get('DEVICE', 'cuda' if torch.cuda.is_available() else 'cpu')   # DEVICE=cuda|mps|cpu; all new tensors go there
-torch.set_default_device(DEVICE)
+torch.set_default_device(DEVICE); print(f'device {DEVICE}', flush=True)
 
 PAR = os.environ.get('PARAMS', 'gentle')
 if PAR == 'paper':  T, KA, SA, KI, SI, ETA_I, ETA_B, B_, A_I, A_B, PHI_I, PHI_B = 1.0, 5.0, 1.0, 5.0, 0.5, 1e-3, 1.2e-3, 1e-3, 1.0, 1.0, 1e-2, 1e-2
