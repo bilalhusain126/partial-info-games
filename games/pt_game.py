@@ -2,7 +2,8 @@
     dalpha_i = -kappa alpha_i dt + sa dW^i      (private to trader i)
     dS = (alpha_1 + alpha_2 + lam (nu_1 + nu_2)) dt + sig dW^S,   dq_i = nu_i dt
     performance_i = int_0^T q_i mu_t dt - a int nu_i^2 dt - phi int q_i^2 dt - psi q_i(T)^2,   mu = alpha_1 + alpha_2 + lam (nu_1 + nu_2)
-    First-order condition:  2a nu_i(t) = E[ -2 psi q_i(T) + int_t^T (mu_s - 2 phi q_i(s)) ds | F^i_t ],   F^i = sigma(alpha_i, S).
+    First-order condition:  2a nu_i(t) = E[ lam q_i(t) - 2 psi q_i(T) + int_t^T (mu_s - 2 phi q_i(s)) ds | F^i_t ],   F^i = sigma(alpha_i, S)
+(the lam q_i(t) term is the direct effect of nu_i on the revenue q_i mu; it vanishes at lam = 0).
 Information modes (INFO env):  private (default): trader i sees alpha_i and S;  full: both see both signals (exact LQ Nash by linear Picard).
 Exact reference at lam = 0 (game decouples): single-agent LQG with state (q_i, alpha_i, alphahat_j), alphahat_j = Kalman estimate of the
 other signal from dS - alpha_i dt. For lam > 0 private: no closed form; use exploitability (npg.exploitability) and the two limits.
@@ -79,7 +80,7 @@ class PTModel:
         return torch.stack([(a[:, k + 1] - a[:, k]) / math.sqrt(DT), (st['S'][:, k + 1] - st['S'][:, k]) / math.sqrt(DT)], -1)
     def bracket(s, i, exo, st, ctrl):
         q = st['q1'] if i == 0 else st['q2']
-        return (-2 * PSI * q[:, -1:] + (st['mu'] - 2 * PHI * q[:, :-1]) @ s.W) / (2 * A_)
+        return (LAM * q[:, :-1] - 2 * PSI * q[:, -1:] + (st['mu'] - 2 * PHI * q[:, :-1]) @ s.W) / (2 * A_)   # lam q_i(t): direct effect of nu_i on q_i mu
     def cost(s, i, exo, st, ctrl):                        # minus realised performance (lower is better)
         q = st['q1'] if i == 0 else st['q2']
         return -((q[:, :-1] * st['mu'] - A_ * ctrl[i] ** 2 - PHI * q[:, :-1] ** 2).sum(1) * DT - PSI * q[:, -1] ** 2)
@@ -99,7 +100,7 @@ def linear_picard_full(exo, iters=30, rho=0.5):
             mu[:, k] = a1[:, k] + a2[:, k] + LAM * (nu[:, 0, k] + nu[:, 1, k]); q[:, :, k + 1] = q[:, :, k] + nu[:, :, k] * DT
         new = []
         for i in range(2):
-            br = (-2 * PSI * q[:, i, -1:] + (mu - 2 * PHI * q[:, i, :-1]) @ W) / (2 * A_); tgt = (1 - rho) * nu[:, i] + rho * br; c = np.zeros((N, 5))
+            br = (LAM * q[:, i, :-1] - 2 * PSI * q[:, i, -1:] + (mu - 2 * PHI * q[:, i, :-1]) @ W) / (2 * A_); tgt = (1 - rho) * nu[:, i] + rho * br; c = np.zeros((N, 5))
             for k in range(N):
                 feats = np.stack([np.ones(m), a1[:, k], a2[:, k], q[:, 0, k], q[:, 1, k]], -1); c[k] = np.linalg.lstsq(feats, tgt[:, k], rcond=1e-6)[0]
             new.append(c)
