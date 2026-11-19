@@ -57,7 +57,11 @@ We fix $u^{-i}$ and assume that $J^i[\,\cdot\,, u^{-i}]$ is concave. For $w \in 
 \end{equation*}
 and $u^i$ is optimal if and only if $D^w J^i[u^i] = 0$ for every $w \in \mathcal{A}^i$.
 
-We denote by $R^i = \int_0^T f^i(t, X_t, u_t) \, dt + g^i(X_T)$ the realized reward of player $i$ along a path, and by $G^i_t$ its derivative with respect to the control of player $i$ at time $t$, with $u^{-i}$ held fixed, so that
+We denote by
+\begin{equation*}
+  R^i = \int_0^T f^i(t, X_t, u_t) \, dt + g^i(X_T)
+\end{equation*}
+the reward of player $i$ realized along a path. We denote by $G^i_t$ the change in $R^i$ per unit change in the control of player $i$ at time $t$, with the controls of the other players held fixed. It is computed along the path, and includes the effect of the change on the state at all later times. Thus,
 \begin{equation*}
   \frac{d}{d\varepsilon} R^i[u^i + \varepsilon w] \Big|_{\varepsilon = 0} = \int_0^T w_t \cdot G^i_t \, dt .
 \end{equation*}
