@@ -2,8 +2,8 @@
 \usepackage[margin=1in]{geometry}
 \usepackage{amsmath,amssymb,amsthm}
 \usepackage{xcolor}
-\usepackage[ruled,vlined]{algorithm2e}
-\SetKw{KwBreak}{break}
+\usepackage{algorithm}
+\usepackage{algpseudocode}
 \usepackage{enumitem}
 \usepackage{hyperref}
 
@@ -132,27 +132,26 @@ The computational procedure is as follows.
 \end{enumerate}
 
 \begin{algorithm}[H]
-    \caption{Deep Picard regression for a Nash equilibrium under asymmetric information}
-    \label{alg:main}
-    \BlankLine
-    \KwIn{Hyperparameters $M, N, K, \rho, S, \epsilon_{\mathrm{tol}}$; simulator of \eqref{eq:state}; observation maps $O^i$; functionals $\Lambda^i$.}
-    \KwOut{Networks $\mathcal{N}^i(\cdot\,; \theta^i)$, $i = 1, \dots, n$.}
-    \BlankLine
-    Initialize networks $\mathcal{N}^i(\cdot\,; \theta^{i,(0)})$ with random parameters, $i = 1, \dots, n$\;
-    \BlankLine
-    \For{$k \leftarrow 0$ \KwTo $K - 1$}{
-        Simulate $M$ paths of $X$ with $u^{i,(k)}_{t_j} = \mathcal{N}^i(t_j, O^i_{[0, t_j]}; \theta^{i,(k)})$ for all $i$\;
-        \For{$i \leftarrow 1$ \KwTo $n$}{
-            Compute targets for all $m, j$: $\mathcal{T}^i[j, m] \leftarrow (1 - \rho)\, u^{i,(m,k)}_{t_j} + \frac{\rho}{2 a_i} \Lambda^{i,(m,k)}_j$\;
-            Initialize $\mathcal{N}^i(\cdot\,; \theta^{i,(k+1)})$ with parameters $\theta^{i,(k)}$\;
-            Train $\mathcal{N}^i(\cdot\,; \theta^{i,(k+1)})$ for $S$ gradient steps on inputs $\{O^{i,(m)}_{[0, t_j]}\}$ and targets $\{\mathcal{T}^i[j, m]\}$\;
-        }
-        Simulate validation paths with the new networks\;
-        \If{$\| u^{(k+1)} - u^{(k)} \|_{\mathrm{RMSE}} < \epsilon_{\mathrm{tol}}$}{
-            \KwBreak\;
-        }
-    }
-    \Return $\mathcal{N}^i(\cdot\,; \theta^{i,(k+1)})$, $i = 1, \dots, n$\;
+  \caption{Deep Picard regression for a Nash equilibrium under asymmetric information}
+  \label{alg:main}
+  \begin{algorithmic}[1]
+    \Statex \textbf{Input:} simulator of \eqref{eq:state}; observations $O^i$; functionals $\Lambda^i$; paths $M$; damping $\rho$; regression steps $S$; iterations $K$
+    \Statex \textbf{Output:} networks $\mathcal{N}^i(\cdot\,; \theta^i)$, $i = 1, \dots, n$
+    \Statex
+    \Statex \textit{Initialize}
+    \State initialize $\theta^{i,(0)}$ randomly, $i = 1, \dots, n$
+    \Statex
+    \Statex \textit{Iterate}
+    \For{$k = 0, \dots, K - 1$}
+      \State simulate $M$ paths of $X$ with $u^{i,(k)}_{t_j} = \mathcal{N}^i(t_j, O^i_{[0, t_j]}; \theta^{i,(k)})$, $i = 1, \dots, n$
+      \For{$i = 1, \dots, n$}
+        \State compute the targets $(1 - \rho)\, u^{i,(m,k)}_{t_j} + \frac{\rho}{2 a_i} \Lambda^{i,(m,k)}_j$ for all $m, j$
+        \State fit $\mathcal{N}^i$ from $\theta^{i,(k)}$ by $S$ gradient steps on $\mathcal{L}^i(\theta^i)$ \Comment{input $O^i$ only}
+        \State set $\theta^{i,(k+1)}$ to the result
+      \EndFor
+    \EndFor
+    \State average the controls of the last iterates
+  \end{algorithmic}
 \end{algorithm}
 
 \begin{remark}
