@@ -61,7 +61,11 @@ We denote by
 \begin{equation*}
   R^i = \int_0^T f^i(t, X_t, u_t) \, dt + g^i(X_T)
 \end{equation*}
-the reward of player $i$ realized along a path. We denote by $G^i_t$ the change in $R^i$ per unit change in the control of player $i$ at time $t$, with the controls of the other players held fixed. It is computed along the path, and includes the effect of the change on the state at all later times. Thus,
+the reward of player $i$ realized along a path. We denote by
+\begin{equation*}
+  G^i_t = \frac{\delta R^i}{\delta u^i_t}
+\end{equation*}
+the derivative of $R^i$ with respect to the control of player $i$ at time $t$, with the controls of the other players held fixed. It is the change in $R^i$ per unit change in $u^i_t$, computed along the path, and includes the effect of the change on the state at all later times. It is defined by
 \begin{equation*}
   \frac{d}{d\varepsilon} R^i[u^i + \varepsilon w] \Big|_{\varepsilon = 0} = \int_0^T w_t \cdot G^i_t \, dt .
 \end{equation*}
