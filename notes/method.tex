@@ -74,7 +74,7 @@ where $\Phi^i(s, t)$ is the deterministic sensitivity of $X_s$ to $u^i_t$. The r
 \subsection{Equilibrium as a fixed point}
 \label{sec:fixed-point}
 
-The controls $u^\star$ form a Nash equilibrium if $J^i[u^{i\star}, u^{-i\star}] \ge J^i[v, u^{-i\star}]$ for every player $i$ and every $v \in \mathcal{A}^i$. We denote by $\Psi$ the map
+The controls $u^\star$ form a Nash equilibrium if $J^i[u^{i\star}, u^{-i\star}] \ge J^i[v, u^{-i\star}]$ for every player $i$ and every $v \in \mathcal{A}^i$. In this comparison, the controls $u^{-i\star}$ of the other players are held fixed as processes. A deviation of player $i$ therefore does not change the trades of the other players, even when those trades depend on prices that the deviation moves. This is the open-loop Nash equilibrium, which is the equilibrium characterized by the forward-backward system of Wu and Jaimungal (2024). In the closed-loop Nash equilibrium, the strategies of the other players are instead held fixed as maps of their observations, so that their trades respond to the deviation. The two equilibria differ in general, and the method computes the open-loop one. We denote by $\Psi$ the map
 \begin{equation}
   \label{eq:psi}
   \big( \Psi(u) \big)^i_t = \frac{1}{2 a_i} \E\big[ \Lambda^i_t[u] \,\big|\, \F^i_t \big] , \qquad i = 1, \dots, n ,
