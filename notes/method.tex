@@ -59,7 +59,7 @@ and $u^i$ is optimal if and only if $D^w J^i[u^i] = 0$ for every $w \in \mathcal
 
 We denote by $R^i = \int_0^T f^i(t, X_t, u_t) \, dt + g^i(X_T)$ the realized reward of player $i$ along a path, and by $G^i_t$ its derivative with respect to the control of player $i$ at time $t$, with $u^{-i}$ held fixed, so that
 \begin{equation*}
-  R^i[u^i + \varepsilon w] = R^i[u^i] + \varepsilon \int_0^T w_t \cdot G^i_t \, dt + o(\varepsilon) .
+  \frac{d}{d\varepsilon} R^i[u^i + \varepsilon w] \Big|_{\varepsilon = 0} = \int_0^T w_t \cdot G^i_t \, dt .
 \end{equation*}
 Taking expectations gives $D^w J^i[u^i] = \E[ \int_0^T w_t \cdot G^i_t \, dt ]$. Since $w_t$ depends only on $\F^i_t$, $G^i_t$ may be replaced by its conditional expectation given $\F^i_t$. Taking $w_t = \E[G^i_t \mid \F^i_t]$ shows that $D^w J^i[u^i] = 0$ for every $w \in \mathcal{A}^i$ if and only if
 \begin{equation}
