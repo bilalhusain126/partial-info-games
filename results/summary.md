@@ -86,3 +86,16 @@ Markov-chain two-trader game (non-Gaussian):
 - lam = 0 vs the exact solution: 13.7 / 9.0% at 8k paths, 6.2 / 6.1% at 32k (correlation 0.998, slope 0.98, mean |nu| 0.184 vs 0.187). The error falls with budget as in the Gaussian case but from a higher level: the regression target is noisier (loss 0.12 vs 0.03 in the Gaussian game), because the control variate removes only the price noise, not the jumps of the chains.
 - private, lam = 0.5 and lam = 1 (three seeds, 16k paths): the iteration converges (change 0.02-0.03 per iteration); seeds agree within 17-21%; FOC residuals 13-19%; model-free optimality check ratios 0.1-0.6 (0 = optimal, 1 = as far from optimal as a 20% rescaling), i.e. the strategies are within roughly 5-12% of optimal by that measure. Trading intensity rises with the impact parameter (mean |nu| 0.187, 0.197, 0.217 at lam = 0, 0.5, 1).
 Reading: the method runs unchanged on the non-Gaussian game and is near-optimal there, with accuracy at lam = 1 of order 10% at this budget rather than 5%; a control variate for the chain jumps (compensated jump martingale) and a larger budget are the obvious improvements.
+
+## Model-free optimality check on the three older games (laptop, 8k paths; applied to the LAST iterate, not the averaged controls)
+
+| game | player | last-iterate error vs exact | check ratio (0 = optimal, 1 = like a 20% rescaling) |
+|---|---|---|---|
+| Wu-Jaimungal h = 0 | trader | 9.7% | 0.71 |
+| Wu-Jaimungal h = 0 | broker | 15.0% | 1.13 |
+| Firoozi-Caines | major | 8.3% | 0.05 |
+| Firoozi-Caines | minor | 5.9% | 0.76 |
+| two-trader lam = 1 (Gaussian) | trader 1 | ~7% (vs kernel, averaged) | 0.99 |
+| two-trader lam = 1 (Gaussian) | trader 2 | ~5% | 0.31 |
+
+Reading: with six random directions and 4k paths the check is coarse. It scales roughly with the error (a ratio of 1 corresponds to an error of order 15-20%), it would flag a gross error such as the 63% of the lam = 2 case, but it cannot resolve 5% from 15%, and it varies by a factor of several between players with similar errors. It is a safeguard against derivation mistakes, not an accuracy measure; the FOC residual and the exact references remain the accuracy measures. More directions and paths would tighten it.
