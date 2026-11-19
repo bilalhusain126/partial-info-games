@@ -77,3 +77,12 @@ The private-information equilibrium is computed to 4-5% at lam <= 1 against an i
 - Signals: independent two-state chains (+-1, switching rate 1), private; price and costs as in the Gaussian game. The conditional expectation of the other trader's signal is the (nonlinear) Wonham filter, so the linear-strategy exact solver does not apply.
 - Exact lam = 0 reference: exact discrete Bayes filter plus a backward recursion for the single-trader problem with an exogenous adapted signal. Checks: filter slope 1.00; regress-on-exact-features test 1.7% / 1.7% (statistical floor); agreement with Casgrain and Jaimungal's closed form (arXiv 1806.04472, eq. 5.12 with the sign of beta/2 corrected, two-state chain, pure diffusion): inventory gain 0.2%, signal gain 5.3% at 50 steps, 1.4% at 200, 0.3% at 800, i.e. discretisation only.
 - Learned runs: batch 5 on the GPU (lam = 0 at 8k and 32k paths vs exact; private lam = 0.5 and lam = 1 with three seeds, FOC and model-free optimality checks).
+
+## Batch 5 (GPU), 2026-11-19
+
+Gaussian two-trader game, headline lam = 1, three seeds at 16k paths vs the exact-class solution: trader 1 5.1 / 5.1 / 5.2%, trader 2 4.8 / 6.1 / 4.9%; seeds agree within 6-7%; the three-seed average is 3.5 / 3.7% from the exact solution; mean |nu| 0.174 (seeds) vs 0.177 (exact). FOC residuals 6-7%.
+
+Markov-chain two-trader game (non-Gaussian):
+- lam = 0 vs the exact solution: 13.7 / 9.0% at 8k paths, 6.2 / 6.1% at 32k (correlation 0.998, slope 0.98, mean |nu| 0.184 vs 0.187). The error falls with budget as in the Gaussian case but from a higher level: the regression target is noisier (loss 0.12 vs 0.03 in the Gaussian game), because the control variate removes only the price noise, not the jumps of the chains.
+- private, lam = 0.5 and lam = 1 (three seeds, 16k paths): the iteration converges (change 0.02-0.03 per iteration); seeds agree within 17-21%; FOC residuals 13-19%; model-free optimality check ratios 0.1-0.6 (0 = optimal, 1 = as far from optimal as a 20% rescaling), i.e. the strategies are within roughly 5-12% of optimal by that measure. Trading intensity rises with the impact parameter (mean |nu| 0.187, 0.197, 0.217 at lam = 0, 0.5, 1).
+Reading: the method runs unchanged on the non-Gaussian game and is near-optimal there, with accuracy at lam = 1 of order 10% at this budget rather than 5%; a control variate for the chain jumps (compensated jump martingale) and a larger budget are the obvious improvements.
