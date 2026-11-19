@@ -68,7 +68,7 @@ Under full information, the stochastic maximum principle states that if $(x, u^i
 \end{equation}
 The state equation \eqref{eq:state}, the adjoint equations \eqref{eq:adjoint} and the conditions \eqref{eq:foc}, for $i = 1, \dots, n$, form a forward-backward system. The forward equation is shared, and each control is determined on its own filtration.
 
-In the examples we consider, the drift is linear and the volatility is constant, $b(t, x, u) = A x + \sum_{j=1}^n B^j u^j + c(t)$ and $\sigma(t, x, u) = \sigma$. The running reward is quadratic in the control of player $i$, with $\partial_{u^i} f^i = - 2 a_i u^i_t + h^i(t, X_t, u^{-i}_t)$ and $a_i > 0$. Then $\partial_x H^i = A\T Y^i + \partial_x f^i$, and \eqref{eq:adjoint} is a linear equation with deterministic coefficients. We denote by $\Phi(s, t) = e^{A(s - t)}$ its fundamental matrix, so that
+In the examples we consider, the drift is linear and the volatility is constant, $b(t, x, u) = A x + \sum_{j=1}^n B^j u^j + c(t)$ and $\sigma(t, x, u) = \sigma$. The running reward is quadratic in the control of player $i$, with $\partial_{u^i} f^i = - 2 a_i u^i_t + h^i(t, X_t, u^{-i}_t)$ and $a_i > 0$. Then $\partial_x H^i = A\T Y^i + \partial_x f^i$, and \eqref{eq:adjoint} is a linear equation with deterministic coefficients. We denote by $\Phi(s, t) = e^{A(s - t)}$ the fundamental matrix of the linear drift, so that
 \begin{equation}
   \label{eq:adjoint-solution}
   Y^i_t = \E\left[ \Phi(T, t)\T \partial_x g^i(X_T) + \int_t^T \Phi(s, t)\T \partial_x f^i(s, X_s, u_s) \, ds \,\Big|\, \G_t \right] .
@@ -84,12 +84,14 @@ where $\Phi^i(s, t) = \Phi(s, t) B^i$ is the sensitivity of $X_s$ to $u^i_t$. Th
 \subsection{Equilibrium as a fixed point}
 \label{sec:fixed-point}
 
-The controls $u^\star$ form a Nash equilibrium if $J^i[u^{i\star}, u^{-i\star}] \ge J^i[v, u^{-i\star}]$ for every player $i$ and every $v \in \mathcal{A}^i$. In this comparison, the controls $u^{-i\star}$ of the other players are held fixed as processes. A deviation of player $i$ therefore does not change the trades of the other players, even when those trades depend on prices that the deviation moves. This is the open-loop Nash equilibrium, which is the equilibrium characterized by the forward-backward system of Wu and Jaimungal (2024). In the closed-loop Nash equilibrium, the strategies of the other players are instead held fixed as maps of their observations, so that their trades respond to the deviation. The two equilibria differ in general, and the method computes the open-loop one. We denote by $\Psi$ the map
+The controls $u^\star$ form a Nash equilibrium if $J^i[u^{i\star}, u^{-i\star}] \ge J^i[v, u^{-i\star}]$ for every player $i$ and every $v \in \mathcal{A}^i$. In this definition, the controls $u^{-i\star}$ are held fixed as processes, so a deviation of player $i$ does not change the trades of the other players. This is the open-loop Nash equilibrium, as in Wu and Jaimungal (2024). In the closed-loop Nash equilibrium, the strategies of the other players are held fixed as functions of their observations, and their trades respond to the deviation. The method computes the open-loop equilibrium.
+
+We denote by $\Psi$ the map
 \begin{equation}
   \label{eq:psi}
   \big( \Psi(u) \big)^i_t = \frac{1}{2 a_i} \E\big[ \Lambda^i_t[u] \,\big|\, \F^i_t \big] , \qquad i = 1, \dots, n ,
 \end{equation}
-where $\Lambda^i_t[u]$ is \eqref{eq:control} evaluated under the controls $u$. Under the concavity assumption, $u$ is a Nash equilibrium if and only if it is a fixed point of $\Psi$. The system \eqref{eq:state}, \eqref{eq:adjoint} and \eqref{eq:foc}, for $i = 1, \dots, n$, is the corresponding forward-backward system, in which each control is determined on its own filtration. \textcolor{red}{For $n = 2$, compare with Wu and Jaimungal (2024); verify the reference.}
+where $\Lambda^i_t[u]$ is \eqref{eq:control} evaluated under the controls $u$. When $H^i$ and $g^i$ are concave, the controls $u$ form a Nash equilibrium if and only if they are a fixed point of $\Psi$.
 
 \subsection{Conditional expectations by regression}
 \label{sec:regression}
