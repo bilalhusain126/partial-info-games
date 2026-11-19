@@ -80,11 +80,42 @@ class Solver:
                 loss = loss + ((pred - tgt) ** 2).mean()
             opt.zero_grad(); loss.backward(); nn.utils.clip_grad_norm_(params, 5.0); opt.step()
         return float(loss.detach())
+    def closed_loop_targets(s, exo, ctrl, chunk=4096):
+        """Closed-loop best-response targets (env CLOSED=1). For each player i, its actions are fixed leaves equal to the current controls,
+        the other players act through their networks on their own observations (so their orders react to i's actions through the state),
+        and the target is u_i - (1/(2 a_i dt)) dJ_i/du_i, with J_i the realised cost (model.cost) on each path. In the open-loop case
+        (other orders frozen) this equals the pathwise functional Lambda_i / (2 a_i). Requires model.cost and model.a_cost[i]."""
+        M = s.M; m = next(iter(v for v in exo.values() if torch.is_tensor(v))).shape[0]; out = []
+        for i in range(M.n_players):
+            tgt = torch.zeros_like(ctrl[i])
+            for a in range(0, m, chunk):
+                sub = {k: (v[a:a + chunk] if torch.is_tensor(v) else v) for k, v in exo.items()}; mm = min(chunk, m - a)
+                if '_nz' in exo: sub['_nz'] = {k: v[a:a + chunk] for k, v in exo['_nz'].items()}
+                act = ctrl[i][a:a + chunk].detach().clone().requires_grad_(True)
+                state = M.init_state(mm); uu = [torch.zeros(mm, M.N) for _ in range(M.n_players)]
+                h = [None if p.gru is None else torch.zeros(1, mm, p.hid) for p in s.pols]
+                for k in range(M.N):
+                    tk = s.t[k].expand(mm, 1); uk = {}
+                    for j, p in enumerate(s.pols):
+                        if j == i: uk[j] = act[:, k]; M.obs_now(j, sub, state, k)
+                        else:
+                            uk[j] = p(tk, M.obs_now(j, sub, state, k), None if p.gru is None else h[j][0])
+                            if os.environ.get('OPEN_TEST'): uk[j] = uk[j].detach()      # freezes the opponent's orders: must reproduce the open-loop bracket
+                    M.step(state, uk, k)
+                    for j, p in enumerate(s.pols):
+                        if j != i and p.gru is not None: _, h[j] = p.gru(M.obs_inc(j, sub, state, k)[:, None], h[j])
+                ctrl_g = [act if j == i else None for j in range(M.n_players)]
+                J = M.cost(i, sub, state, ctrl_g).sum()
+                g, = torch.autograd.grad(J, act)
+                tgt[a:a + chunk] = (act - g / (2 * M.a_cost[i] * M.DT)).detach()
+            out.append(tgt)
+        return out
     def run(s, iters, ref=None, log=lambda m: print(m, flush=True)):
         M = s.M; prev = None; t0 = time.time(); hist = []; avg_from = int(os.environ.get('AVG_FROM', '4')); avg = None; n_avg = 0
         for it in range(iters):
             state, ctrl, seqs = s.rollout(s.exo_tr); s.rho_n = max(s.rho, 1.0 / (it + 1)) if s.damp == 'fp' else s.rho
-            tg = [(1 - s.rho_n) * ctrl[i] + s.rho_n * M.bracket(i, s.exo_tr, state, ctrl) for i in range(M.n_players)]
+            br = s.closed_loop_targets(s.exo_tr, ctrl) if os.environ.get('CLOSED') else [M.bracket(i, s.exo_tr, state, ctrl) for i in range(M.n_players)]
+            tg = [(1 - s.rho_n) * ctrl[i] + s.rho_n * br[i] for i in range(M.n_players)]
             loss = s.fit(s.exo_tr, state, ctrl, tg, seqs)
             vstate, vctrl, _ = s.rollout(s.exo_v)
             chg = 0.0 if prev is None else float(sum(((vctrl[i] - prev[i]) ** 2).mean() for i in range(M.n_players)).sqrt())

@@ -62,7 +62,7 @@ def reference_paths_lam0(ref, nz):
 class PTModel:
     n_players = 2; N = N; DT = DT
     d_now = [3, 3] if INFO == 'private' else [4, 4]; d_seq = [2, 2] if INFO == 'private' else [0, 0]
-    d_full = 5; d_w = 3; cv_gamma = [1.0, 1.0]
+    d_full = 5; d_w = 3; cv_gamma = [1.0, 1.0]; a_cost = [A_, A_]
     def __init__(s): j, k = np.indices((N, N)); s.W = torch.tensor(np.where(j > k, DT, 0.0), dtype=torch.float32)   # integral over s > t
     def exo(s, m, seed):
         nz = simulate_noise(m, seed); a1, a2 = signals(nz)
