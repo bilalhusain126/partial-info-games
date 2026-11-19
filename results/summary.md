@@ -58,3 +58,15 @@ Trading intensity, mean |nu| over paths and time: private 0.167, full informatio
 - FOC residual vs true error under strong coupling, full information lam = 2, 8k paths, CV: residual 1.7% / 1.9%, true error 4.0% / 4.2% (factor ~2.3). The residual underestimates the error at strong coupling; at lam = 0 the factor was ~1.5. Applied to the private lam = 2 case, residuals of 6-8% suggest a true error of 10-15%.
 - Open: the full-information lam = 2 run has negligible regression noise (loss 5e-5) yet a 4% systematic gap to the linear-Picard reference.
 - Strong-coupling Wu-Jaimungal (a = b = 0.1), damping 0.2 and 0.1, 40 iterations, GPU (batch 3): trader converges to 7.3% vs exact at h = 0 (both dampings); broker's error drifts from 20% (iteration 9) to 70-80% (iteration 39) with its best-response residual at 1.0 throughout, i.e. the broker's regression never fits its target. Full-information broker (linear regression) reached 7.3%, so this is a regression failure at high gain (target ten times larger relative to the control than at a = 1; standalone prototype has no control variate and a fixed output scale), not an iteration failure. To try: engine version with control variate and rescaled outputs.
+
+## Corrected two-trader runs on the GPU (batch 4, 16k paths, 1500 steps, control variate), vs the exact-class kernel solution, 2026-11-19
+
+| run | lam | trader 1 | trader 2 | mean |nu| learned / kernel |
+|---|---|---|---|---|
+| private | 0.25 | 4.4% | 4.7% | 0.151 / 0.151 |
+| private | 0.5 | 4.6% | 4.7% | 0.157 / 0.157 |
+| private (headline) | 1 | 5.2% | 4.3% | 0.174 / 0.177 |
+| full information | 2 | 3.2% | 3.3% | 0.434 / 0.442 |
+| private, seeds 1-3 | 2 | 63% each (seeds agree within 7-8%) | | 0.36 / 0.79 |
+
+The private-information equilibrium is computed to 4-5% at lam <= 1 against an independent solver; the 4% shrinkage of the controls seen at 8k paths is 1.7% at 16k. The full-information gap of the earlier runs was the first-order-condition bug. At the edge case lam = 2 the learned seeds agree with each other but not with the kernel branch (test of stationarity below).
