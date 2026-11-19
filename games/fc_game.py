@@ -137,10 +137,12 @@ if __name__ == '__main__':
     M = FCModel(); S = Solver(M, hid=32, rho=float(os.environ.get('RHO_DAMP', '0.7')), lr=1e-3, batch=int(os.environ.get('BATCH', '1024')), steps=int(os.environ.get('STEPS', '1500')),
                               m_paths=int(os.environ.get('M_PATHS', '8192')), m_val=2048)
     u0_ex, ui_ex, *_ = reference_paths(ref, {k: v.cpu().numpy().astype(np.float64) for k, v in S.exo_v.items()})
-    from npg import exploitability, foc_residual
+    from npg import exploitability, foc_residual, gateaux_check
     vstate, vctrl, hist = S.run(int(sys.argv[1]) if len(sys.argv) > 1 else 10, ref=[torch.tensor(u0_ex, dtype=torch.float32), torch.tensor(ui_ex, dtype=torch.float32)])
     if os.environ.get('FOC_CHECK'):
         for i in range(2): foc_residual(S, i)
+    if os.environ.get('GATEAUX'):
+        for i in range(2): gateaux_check(S, i)
     if os.environ.get('EXPLOIT'):
         for i in range(2): g, J0 = exploitability(S, i, iters=int(os.environ.get('EXPLOIT_ITERS', '6'))); print(f'player {i}: exploitability {g:+.5f} relative to cost {J0:.4f} ({100 * g / J0:+.2f}%)', flush=True)
     np.savez(os.environ.get('SAVE', os.path.join(os.environ.get('RESULTS_DATA', os.path.expanduser('~/Desktop/Bilal Saleh Husain/research-data/partial-info-games')), f'fc_last.npz')), t=tg[:-1], u0=vctrl[0].cpu().numpy(), u0_ex=u0_ex, ui=vctrl[1].cpu().numpy(), ui_ex=ui_ex, hist=np.array(hist))

@@ -11,7 +11,7 @@ Usage: python3 pt_game.py [iters]  (env: LAM, A_COST, INFO, M_PATHS, STEPS, BATC
 import os, sys
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'src'))
 import os, sys, math, time, numpy as np, torch
-from npg import Solver, exploitability, foc_residual
+from npg import Solver, exploitability, foc_residual, gateaux_check
 
 T = 1.0; N = int(os.environ.get('N_STEPS', '50')); DT = T / N; tg = np.linspace(0, T, N + 1)
 LAM = float(os.environ.get('LAM', '1.0')); A_ = float(os.environ.get('A_COST', '0.5')); PHI, PSI = 0.1, 1.0
@@ -123,6 +123,8 @@ if __name__ == '__main__':
     vstate, vctrl, hist = S.run(ITERS, ref=ref)
     if os.environ.get('FOC_CHECK'):
         for i in range(2): foc_residual(S, i)
+    if os.environ.get('GATEAUX'):
+        for i in range(2): gateaux_check(S, i)
     if os.environ.get('EXPLOIT'):
         for i in range(2): g, J0 = exploitability(S, i, iters=int(os.environ.get('EXPLOIT_ITERS', '6'))); print(f'player {i}: exploitability {g:+.5f} relative to |cost| {abs(J0):.4f} ({100 * g / abs(J0):+.2f}%)', flush=True)
     np.savez(os.environ.get('SAVE', os.path.join(os.environ.get('RESULTS_DATA', os.path.expanduser('~/Desktop/Bilal Saleh Husain/research-data/partial-info-games')), f'pt_last.npz')), t=tg[:-1], nu1=vctrl[0].cpu().numpy(), nu2=vctrl[1].cpu().numpy(), a1=S.exo_v['a1'].cpu().numpy(), a2=S.exo_v['a2'].cpu().numpy(), q1=vstate['q1'].cpu().numpy(), q2=vstate['q2'].cpu().numpy(), nu_ex=(ref[0].cpu().numpy() if ref else np.zeros(1)), hist=np.array(hist))

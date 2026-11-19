@@ -137,3 +137,40 @@ def foc_residual(S, i, steps=None, m_fresh=None, log=lambda m: print(m, flush=Tr
     _, vcur, _ = S.rollout(S.exo_v); S.steps, S.rho_n = steps0, rho0
     d = float(((vfresh[i] - vcur[i]) ** 2).mean().sqrt() / (vcur[i] ** 2).mean().sqrt())
     log(f'  FOC residual player {i}: independent regression vs current control, rel L2 {d:.4f} (fit loss {loss:.2e})'); return d
+
+def gateaux_check(S, i, n_dirs=6, eps=0.05, m_eval=4096, log=lambda m: print(m, flush=True)):
+    """Model-free optimality check for player i. For random admissible directions v (networks with random weights that read only
+    player i's observations), simulate the game with u_i + eps v and u_i - eps v on common random numbers, holding the other players
+    fixed, and estimate the derivative of player i's realised cost along v. At an optimum the derivative is zero up to Monte Carlo noise.
+    For scale, the same derivative is measured at a deliberately wrong strategy (u_i scaled by 0.8). Reports the ratio of the two.
+    Requires model.cost(i, exo, state, ctrl) (lower is better)."""
+    import copy
+    M = S.M; exo = M.exo(m_eval, 29 + i); base = S.pols[i]
+    class Perturbed(nn.Module):
+        def __init__(s, base, v, eps, scale=1.0): super().__init__(); s.base, s.v, s.eps, s.scale, s.gru, s.hid, s.d_seq = base, v, eps, scale, base.gru, base.hid, base.d_seq
+        def mem(s, seq): return s.base.mem(seq)
+        def forward(s, t, now, memk): return s.scale * s.base(t, now, memk) + s.eps * s.v(t, now, memk)
+    def J(pol):
+        S.pols[i] = pol; st, ctrl, _ = S.rollout(exo); S.pols[i] = base; return float(M.cost(i, exo, st, ctrl).mean())
+    torch.manual_seed(1234 + i); out_opt, out_bad = [], []
+    for d in range(n_dirs):
+        v = Policy(M.d_now[i], M.d_seq[i], base.hid if base.gru is not None else 32)
+        with torch.no_grad():
+            for p in v.parameters(): p.mul_(0.5)
+        # scale v so that its control has the same size as the current control
+        st, ctrl, _ = S.rollout(exo); S.pols[i] = v; _, cv, _ = S.rollout(exo); S.pols[i] = base
+        with torch.no_grad():
+            for p in v.parameters(): p.mul_(float(ctrl[i].pow(2).mean().sqrt() / (cv[i].pow(2).mean().sqrt() + 1e-12)) ** 0.5)
+        # note: scaling all weights by c does not scale the output by c for a nonlinear net; use the output scale measured once more
+        S.pols[i] = v; _, cv, _ = S.rollout(exo); S.pols[i] = base; r = float(ctrl[i].pow(2).mean().sqrt() / (cv[i].pow(2).mean().sqrt() + 1e-12))
+        class Scaled(nn.Module):
+            def __init__(s, v, r): super().__init__(); s.v, s.r, s.gru = v, r, v.gru
+            def mem(s, seq): return s.v.mem(seq)
+            def forward(s, t, now, memk): return s.r * s.v(t, now, memk)
+        vs = Scaled(v, r)
+        d_opt = (J(Perturbed(base, vs, eps)) - J(Perturbed(base, vs, -eps))) / (2 * eps)
+        d_bad = (J(Perturbed(base, vs, eps, 0.8)) - J(Perturbed(base, vs, -eps, 0.8))) / (2 * eps)
+        out_opt.append(d_opt); out_bad.append(d_bad)
+    a, b = np.abs(out_opt).mean(), np.abs(out_bad).mean()
+    log(f'  Gateaux check player {i}: mean |dJ/d eps| at learned strategy {a:.3e}, at learned x 0.8 {b:.3e}; ratio {a / (b + 1e-12):.3f} (0 = optimal, 1 = as wrong as a 20% rescaling)')
+    return a, b

@@ -5,7 +5,7 @@ sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), '..'
 import sys, os, math, numpy as np, torch
 sys.argv = ['x', os.environ.get('H', '0'), os.environ.get('T', '0.3')]
 import wj_game as W          # reuse constants, simulate(), kalman_alpha(), exact_h0()
-from npg import Solver
+from npg import Solver, gateaux_check, foc_residual
 
 class WJModel:
     n_players = 2; N = W.N; DT = W.DT; d_now = [5, 2]; d_seq = [0, 2]
@@ -28,6 +28,11 @@ class WJModel:
     def obs_now(s, i, exo, st, k):
         if i == 0: return torch.stack([exo['al'][:, k], st['QB'][:, k], st['QI'][:, k], st['Y'][:, k], exo['ah'][:, k]], -1)
         return torch.stack([st['Y'][:, k], exo['ah'][:, k]], -1)
+    def cost(s, i, exo, st, ctrl):                       # minus realised performance of trader (i=0) or broker (i=1), Wu-Jaimungal objectives
+        al, Y, QB, QI = exo['al'][:, :-1], st['Y'][:, :-1], st['QB'], st['QI']; eta, nu = ctrl[0], ctrl[1]
+        if i == 0: perf = ((QI[:, :-1] * (al + W.H * nu - W.P_ * Y) - W.B_ * eta ** 2 - W.RI * QI[:, :-1] ** 2) * s.DT).sum(1) - W.PSI * QI[:, -1] ** 2
+        else: perf = ((QB[:, :-1] * (al + W.H * eta - W.P_ * Y) - W.A_ * nu ** 2 - W.RB * QB[:, :-1] ** 2) * s.DT).sum(1) - W.PHI * QB[:, -1] ** 2
+        return -perf
     def bracket(s, i, exo, st, ctrl):
         tI, tB = W.targets(exo['al'], ctrl[1], ctrl[0], st['QB'], st['QI'], st['Y']); return tI if i == 0 else tB
 
@@ -37,4 +42,6 @@ if __name__ == '__main__':
     if W.H == 0:
         eta_ex, nu_ex, _, _, _ = W.exact_h0(S.exo_v['al'].cpu().numpy(), S.exo_v['dz'].cpu().numpy()); ref = [torch.tensor(eta_ex), torch.tensor(nu_ex)]
     vstate, vctrl, hist = S.run(int(os.environ.get('ITERS', '8')), ref=ref)
+    if os.environ.get('GATEAUX'):
+        for i in range(2): gateaux_check(S, i)
     np.savez(os.environ.get('SAVE', os.path.join(os.environ.get('RESULTS_DATA', os.path.expanduser('~/Desktop/Bilal Saleh Husain/research-data/partial-info-games')), f'wj_last.npz')), eta=vctrl[0].cpu().numpy(), nu=vctrl[1].cpu().numpy(), eta_ex=(ref[0].cpu().numpy() if ref else np.zeros(1)), nu_ex=(ref[1].cpu().numpy() if ref else np.zeros(1)), hist=np.array(hist))
