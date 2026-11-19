@@ -118,4 +118,4 @@ if __name__ == '__main__':
             n_avg += 1; avg = [x.clone() for x in (nuBv, nubarv, nuiv)] if avg is None else [a + (x - a) / n_avg for a, x in zip(avg, (nuBv, nubarv, nuiv))]
             msg += f' | avg({n_avg}): broker {rel(avg[0], nuB_ex):.3f} avg flow {rel(avg[1], nubar_ex):.3f} trader_i {rel(avg[2], nui_ex):.3f}'
         print(msg + f' ({time.time()-t0:.0f}s)', flush=True); prev = (nuBv, nuiv)
-    np.savez(os.environ.get('SAVE', os.path.join(os.environ.get('RESULTS_DATA', os.path.expanduser('~/research-data/partial-info-games')), f'bsb_last.npz')), t=tg[:-1], nuB=nuBv.cpu().numpy(), nuB_ex=nuB_ex.cpu().numpy(), nubar=nubarv.cpu().numpy(), nubar_ex=nubar_ex.cpu().numpy(), nui=nuiv[:, 0].cpu().numpy(), nui_ex=nui_ex[:, 0].cpu().numpy())
+    np.savez(os.environ.get('SAVE', os.path.join(os.environ.get('RESULTS_DATA', os.path.expanduser('~/Desktop/Bilal Saleh Husain/research-data/partial-info-games')), f'bsb_last.npz')), t=tg[:-1], nuB=nuBv.cpu().numpy(), nuB_ex=nuB_ex.cpu().numpy(), nubar=nubarv.cpu().numpy(), nubar_ex=nubar_ex.cpu().numpy(), nui=nuiv[:, 0].cpu().numpy(), nui_ex=nui_ex[:, 0].cpu().numpy())

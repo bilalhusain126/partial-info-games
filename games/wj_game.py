@@ -173,4 +173,4 @@ if __name__ == '__main__':
     print('nu scale', float(nu_v.abs().mean()), 'eta scale', float(eta_v.abs().mean()))
     out = dict(t=tgrid[:-1], nu=nu_v.cpu().numpy(), eta=eta_v.cpu().numpy(), alpha=al_v.cpu().numpy(), QB=QBv.cpu().numpy(), QI=QIv.cpu().numpy(), Y=Yv.cpu().numpy())
     if H == 0 or MODE == 'full': out.update(nu_ex=nu_ex.cpu().numpy(), eta_ex=eta_ex.cpu().numpy())
-    np.savez(os.environ.get('SAVE', os.path.join(os.environ.get('RESULTS_DATA', os.path.expanduser('~/research-data/partial-info-games')), f'last.npz')), **out)
+    np.savez(os.environ.get('SAVE', os.path.join(os.environ.get('RESULTS_DATA', os.path.expanduser('~/Desktop/Bilal Saleh Husain/research-data/partial-info-games')), f'last.npz')), **out)

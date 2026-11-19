@@ -37,4 +37,4 @@ if __name__ == '__main__':
     if W.H == 0:
         eta_ex, nu_ex, _, _, _ = W.exact_h0(S.exo_v['al'].cpu().numpy(), S.exo_v['dz'].cpu().numpy()); ref = [torch.tensor(eta_ex), torch.tensor(nu_ex)]
     vstate, vctrl, hist = S.run(int(os.environ.get('ITERS', '8')), ref=ref)
-    np.savez(os.environ.get('SAVE', os.path.join(os.environ.get('RESULTS_DATA', os.path.expanduser('~/research-data/partial-info-games')), f'wj_last.npz')), eta=vctrl[0].cpu().numpy(), nu=vctrl[1].cpu().numpy(), eta_ex=(ref[0].cpu().numpy() if ref else np.zeros(1)), nu_ex=(ref[1].cpu().numpy() if ref else np.zeros(1)), hist=np.array(hist))
+    np.savez(os.environ.get('SAVE', os.path.join(os.environ.get('RESULTS_DATA', os.path.expanduser('~/Desktop/Bilal Saleh Husain/research-data/partial-info-games')), f'wj_last.npz')), eta=vctrl[0].cpu().numpy(), nu=vctrl[1].cpu().numpy(), eta_ex=(ref[0].cpu().numpy() if ref else np.zeros(1)), nu_ex=(ref[1].cpu().numpy() if ref else np.zeros(1)), hist=np.array(hist))

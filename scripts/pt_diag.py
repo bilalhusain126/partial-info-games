@@ -3,7 +3,7 @@ statistic (alpha_i, q_i, alphahat_j) along reference paths and compare with the 
 is the discrete optimum). (B) is the GRU the bottleneck? Same regression on the learned solution's paths with the exact alphahat_j as
 a feature. Usage, from scripts/: LAM=0 python3 pt_diag.py"""
 import os, sys, numpy as np
-DATA = os.environ.get('RESULTS_DATA', os.path.expanduser('~/research-data/partial-info-games'))
+DATA = os.environ.get('RESULTS_DATA', os.path.expanduser('~/Desktop/Bilal Saleh Husain/research-data/partial-info-games'))
 os.environ.setdefault('LAM', '0'); sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'games'))
 import pt_game as P
 

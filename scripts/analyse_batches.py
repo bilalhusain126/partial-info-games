@@ -2,7 +2,7 @@
 full-information trading intensity, and the final errors of every run with an exact reference. Writes results/summary.md and
 results/scaling.png. Usage, from scripts/: python3 analyse_batches.py"""
 import os, re, glob, numpy as np
-DATA = os.environ.get('RESULTS_DATA', os.path.expanduser('~/research-data/partial-info-games'))
+DATA = os.environ.get('RESULTS_DATA', os.path.expanduser('~/Desktop/Bilal Saleh Husain/research-data/partial-info-games'))
 R = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'results'); out = []
 import sys; os.environ['LAM'] = '0'; sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'games'))
 import pt_game as P
