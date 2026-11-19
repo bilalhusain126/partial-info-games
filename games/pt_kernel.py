@@ -86,7 +86,7 @@ if __name__ == '__main__':
     if LAM == 0.0:
         ex = P.reference_paths_lam0(P.reference_lam0(), nz)
         print(f'lam=0 check vs closed form: trader1 {rel(nu[:, 0], ex[:, 0]):.4f} trader2 {rel(nu[:, 1], ex[:, 1]):.4f}  (|nu| {np.abs(nu).mean():.3f} exact {np.abs(ex).mean():.3f})')
-    np.savez(os.environ.get('SAVE', f'../results/pt_kernel_{INFO}_lam{LAM}.npz'), beta=beta.numpy(), nu1=nu[:, 0], nu2=nu[:, 1])
+    np.savez(os.environ.get('SAVE', os.path.join(os.environ.get('RESULTS_DATA', os.path.expanduser('~/research-data/partial-info-games')), f'pt_kernel_{INFO}_lam{LAM}.npz')), beta=beta.numpy(), nu1=nu[:, 0], nu2=nu[:, 1])
     for f in [f'../results/pt_priv2_cv_s{s}.npz' for s in (1, 2, 3)] + ['../results/pt_scale_32768.npz', '../results/pt_priv_lam0.25.npz', '../results/pt_priv_lam0.5.npz', '../results/pt_full2_cv.npz', '../results/pt_full2_cv_foc.npz']:
         if os.path.exists(f):
             d = np.load(f)

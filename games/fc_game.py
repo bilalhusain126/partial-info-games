@@ -143,4 +143,4 @@ if __name__ == '__main__':
         for i in range(2): foc_residual(S, i)
     if os.environ.get('EXPLOIT'):
         for i in range(2): g, J0 = exploitability(S, i, iters=int(os.environ.get('EXPLOIT_ITERS', '6'))); print(f'player {i}: exploitability {g:+.5f} relative to cost {J0:.4f} ({100 * g / J0:+.2f}%)', flush=True)
-    np.savez(os.environ.get('SAVE', '../results/fc_last.npz'), t=tg[:-1], u0=vctrl[0].cpu().numpy(), u0_ex=u0_ex, ui=vctrl[1].cpu().numpy(), ui_ex=ui_ex, hist=np.array(hist))
+    np.savez(os.environ.get('SAVE', os.path.join(os.environ.get('RESULTS_DATA', os.path.expanduser('~/research-data/partial-info-games')), f'fc_last.npz')), t=tg[:-1], u0=vctrl[0].cpu().numpy(), u0_ex=u0_ex, ui=vctrl[1].cpu().numpy(), ui_ex=ui_ex, hist=np.array(hist))
