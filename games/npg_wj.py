@@ -28,10 +28,11 @@ class WJModel:
     def obs_now(s, i, exo, st, k):
         if i == 0: return torch.stack([exo['al'][:, k], st['QB'][:, k], st['QI'][:, k], st['Y'][:, k], exo['ah'][:, k]], -1)
         return torch.stack([st['Y'][:, k], exo['ah'][:, k]], -1)
+    def target_weight(s, i): return torch.full((s.N,), 2 * (W.B_ if i == 0 else W.A_) * s.DT)
     def cost(s, i, exo, st, ctrl):                       # minus realised performance of trader (i=0) or broker (i=1), Wu-Jaimungal objectives
         al, Y, QB, QI = exo['al'][:, :-1], st['Y'][:, :-1], st['QB'], st['QI']; eta, nu = ctrl[0], ctrl[1]
         if i == 0: perf = ((QI[:, :-1] * (al + W.H * nu - W.P_ * Y) - W.B_ * eta ** 2 - W.RI * QI[:, :-1] ** 2) * s.DT).sum(1) - W.PSI * QI[:, -1] ** 2
-        else: perf = ((QB[:, :-1] * (al + W.H * eta - W.P_ * Y) - W.A_ * nu ** 2 - W.RB * QB[:, :-1] ** 2) * s.DT).sum(1) - W.PHI * QB[:, -1] ** 2
+        else: perf = ((QB[:, :-1] * (al + W.H * nu - W.P_ * Y) - W.A_ * nu ** 2 - W.RB * QB[:, :-1] ** 2) * s.DT).sum(1) - W.PHI * QB[:, -1] ** 2
         return -perf
     def bracket(s, i, exo, st, ctrl):
         tI, tB = W.targets(exo['al'], ctrl[1], ctrl[0], st['QB'], st['QI'], st['Y']); return tI if i == 0 else tB

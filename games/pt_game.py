@@ -81,6 +81,7 @@ class PTModel:
     def bracket(s, i, exo, st, ctrl):
         q = st['q1'] if i == 0 else st['q2']
         return (LAM * q[:, :-1] - 2 * PSI * q[:, -1:] + (st['mu'] - 2 * PHI * q[:, :-1]) @ s.W) / (2 * A_)   # lam q_i(t): direct effect of nu_i on q_i mu
+    def target_weight(s, i): return torch.full((N,), 2 * A_ * DT)
     def cost(s, i, exo, st, ctrl):                        # minus realised performance (lower is better)
         q = st['q1'] if i == 0 else st['q2']
         return -((q[:, :-1] * st['mu'] - A_ * ctrl[i] ** 2 - PHI * q[:, :-1] ** 2).sum(1) * DT - PSI * q[:, -1] ** 2)

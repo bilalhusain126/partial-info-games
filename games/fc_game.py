@@ -111,6 +111,7 @@ class FCModel:
         x0, xi = st['x0'][:, k], st['xi'][:, k]
         if i == 0: return ((L0 * x0 * DT + SV0 * exo['dv0'][:, k]) / math.sqrt(DT))[:, None]
         return (torch.stack([L1 * xi, L2 * x0], -1) * DT + torch.tensor([SV, SV2]) * exo['dvi'][:, k]) / math.sqrt(DT)
+    def target_weight(s, i): return torch.tensor(2 * (R0 if i == 0 else R_) * np.exp(-RHO * tg[:-1]) * DT, dtype=torch.float32)   # d^2 J / d u_k^2
     def cost(s, i, exo, st, ctrl):                        # realised discounted cost of player i (lower is better)
         disc = torch.tensor(np.exp(-RHO * tg[:-1]), dtype=torch.float32)
         if i == 0: return ((Q0 * (st['x0'][:, :-1] - ETA0) ** 2 + R0 * ctrl[0] ** 2) * disc).sum(1) * DT

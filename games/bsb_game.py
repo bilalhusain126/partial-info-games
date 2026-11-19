@@ -81,7 +81,8 @@ def rollout(nets, al, alI):
     return nui, nuB, nubar, Qi, Qb, QB
 
 def brackets(al, alI, nui, nuB, nubar, Qi, Qb, QB):
-    rc = lambda x: torch.flip(torch.cumsum(torch.flip(x, [-1]), -1), [-1]) * DT
+    rc0 = lambda x: torch.flip(torch.cumsum(torch.flip(x, [-1]), -1), [-1]) * DT
+    rc = (lambda x: rc0(x) - x * DT) if os.environ.get('FOC', 'discrete') == 'discrete' else rc0   # discrete: exact first order condition of the discrete game (sum over j > k)
     gI = B_ * nuB[:, None, :] + alI[:, :, :-1] + al[:, None, :-1] - 2 * PHI_I * Qi[:, :, :-1]
     tI = (-2 * A_I * Qi[:, :, -1:] + rc(gI)) / (2 * ETA_I)
     gB = B_ * nubar + al[:, :-1] - 2 * PHI_B * QB[:, :-1]
