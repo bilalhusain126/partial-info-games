@@ -57,35 +57,28 @@ We fix $u^{-i}$ and assume that $J^i[\,\cdot\,, u^{-i}]$ is concave. For $w \in 
 \end{equation*}
 and $u^i$ is optimal if and only if $D^w J^i[u^i] = 0$ for every $w \in \mathcal{A}^i$.
 
-The perturbation does not change the exogenous process $\xi$. To first order in $\varepsilon$, it changes the controlled state by $\varepsilon \, \delta Z_s$, where
+We denote by $R^i = \int_0^T f^i(t, X_t, u_t) \, dt + g^i(X_T)$ the realized reward of player $i$ along a path, and by $G^i_t$ its derivative with respect to the control of player $i$ at time $t$, with $u^{-i}$ held fixed, so that
 \begin{equation*}
-  \delta Z_s = \int_0^s \Phi^i(s, t) \, w_t \, dt ,
+  R^i[u^i + \varepsilon w] = R^i[u^i] + \varepsilon \int_0^T w_t \cdot G^i_t \, dt + o(\varepsilon) .
 \end{equation*}
-and $\Phi^i(s, t)$ is the sensitivity of $Z_s$ to the control of player $i$ at time $t$. For an inventory $dq_t = u^i_t \, dt$, $\Phi^i = I$, so that $\delta q_s = \int_0^s w_t \, dt$. Differentiating \eqref{eq:objective} gives
-\begin{equation*}
-  D^w J^i[u^i] = \E\left[ \int_0^T \Big( \partial_{u^i} f^i_s \cdot w_s + \partial_z f^i_s \cdot \delta Z_s \Big) ds + \partial_z g^i_T \cdot \delta Z_T \right] ,
-\end{equation*}
-where the derivatives of $f^i$ and $g^i$ are evaluated along $(s, X_s, u_s)$ and $X_T$. By Fubini's theorem on the triangle $\{0 \le t \le s \le T\}$, the term in $\delta Z$ is
-\begin{equation*}
-  \int_0^T \partial_z f^i_s \cdot \delta Z_s \, ds = \int_0^T w_t \cdot \Big( \int_t^T \Phi^i(s, t)\T \partial_z f^i_s \, ds \Big) dt ,
-\end{equation*}
-and likewise for the terminal term. Thus,
-\begin{equation*}
-  D^w J^i[u^i] = \E\left[ \int_0^T w_t \cdot G^i_t \, dt \right] , \qquad
-  G^i_t = \partial_{u^i} f^i_t + \int_t^T \Phi^i(s, t)\T \partial_z f^i_s \, ds + \Phi^i(T, t)\T \partial_z g^i_T .
-\end{equation*}
-Since $w_t$ depends only on $\F^i_t$, $G^i_t$ may be replaced by its conditional expectation given $\F^i_t$. Taking $w_t = \E[G^i_t \mid \F^i_t]$ shows that $D^w J^i[u^i] = 0$ for every $w \in \mathcal{A}^i$ if and only if
+Taking expectations gives $D^w J^i[u^i] = \E[ \int_0^T w_t \cdot G^i_t \, dt ]$. Since $w_t$ depends only on $\F^i_t$, $G^i_t$ may be replaced by its conditional expectation given $\F^i_t$. Taking $w_t = \E[G^i_t \mid \F^i_t]$ shows that $D^w J^i[u^i] = 0$ for every $w \in \mathcal{A}^i$ if and only if
 \begin{equation}
   \label{eq:foc}
   \E\big[ G^i_t \,\big|\, \F^i_t \big] = 0 .
 \end{equation}
 
-When $f^i$ is quadratic in $u^i$, with $\partial_{u^i} f^i = - 2 a_i u^i_t + h^i(t, X_t, u^{-i}_t)$ and $a_i > 0$, condition \eqref{eq:foc} can be solved for the control,
+When $\partial^2_{u^i} f^i = - 2 a_i I$ with $a_i > 0$, the quantity $\Lambda^i_t = G^i_t + 2 a_i u^i_t$ does not depend on $u^i_t$, and \eqref{eq:foc} gives
 \begin{equation}
   \label{eq:control}
-  u^i_t = \frac{1}{2 a_i} \E\big[ \Lambda^i_t \,\big|\, \F^i_t \big] , \qquad \Lambda^i_t = G^i_t + 2 a_i u^i_t .
+  u^i_t = \frac{1}{2 a_i} \E\big[ \Lambda^i_t \,\big|\, \F^i_t \big] .
 \end{equation}
-The random variable $\Lambda^i_t$ depends on the future of the game, including the future controls of player $i$. Thus, \eqref{eq:control} characterizes the optimal control but does not give it explicitly. In the examples we consider, $b$ is linear in $(Z, u)$ with constant coefficients $\partial_z b = A$ and $\partial_{u^i} b = B^i$, so that $\Phi^i(s, t) = e^{A(s - t)} B^i$.
+The random variable $\Lambda^i_t$ depends on the future of the game, including the future controls of player $i$. Thus, \eqref{eq:control} characterizes the optimal control but does not give it explicitly.
+
+For example, when the controlled state is an inventory, $dq_t = u^i_t \, dt$, a change of the control at time $t$ changes the inventory by the same amount at every later time. By Fubini's theorem on the triangle $\{0 \le t \le s \le T\}$,
+\begin{equation*}
+  G^i_t = \partial_{u^i} f^i_t + \int_t^T \partial_q f^i_s \, ds + \partial_q g^i_T ,
+\end{equation*}
+which is the calculation of the execution problem. When the controlled state also contains, for example, a price impact that decays over time, each term $\partial_q f^i_s$ is multiplied by the amount by which the control at time $t$ moves the state at time $s$.
 
 \subsection{Equilibrium as a fixed point}
 \label{sec:fixed-point}
