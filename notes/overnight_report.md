@@ -19,7 +19,7 @@ Scope: Bilal asked for new example problems, not more Wu-Jaimungal compute. Four
 
 Model: one broker, a continuum of informed traders of one type; trader i sees the common signal alpha, its private signal alpha^i, its inventory, the mean-field inventory and the broker inventory; the broker sees alpha and the two aggregate inventories. Both FOCs (Thms 3.4, 3.7) are of the form control = (1/2 eta) E[pathwise bracket | own information]. The mean field is approximated by a finite population (32 or 64 traders per path).
 
-Reference: closed-form ODEs (g, h for the mean field and broker; f's for the trader, eqs. 3.18-3.22). My ODE solver matches the paper's quoted values (ga(0) = 63.2, hb(0.95) = -19.4) and the identities fa = ga, fc = gc, fb + fbI = gb hold to 2e-3.
+Reference: closed-form ODEs (g, h for the mean field and broker; f's for the trader, eqs. 3.18-3.22). My ODE solver is consistent with the paper's figure ranges (the paper quotes no numerical values; correction from the audit of 2026-11-19) and the identities fa = ga, fc = gc, fb + fbI = gb hold to 2e-3.
 
 Parameters: the paper's set is stiff (gb -> -1000 near T, needs ~1e4 time steps), so a "gentle" set was used (T = 1, k_alpha = k_I = 1, sigma_alpha = 1, sigma_I = 0.5, eta_I = eta_B = 0.1, b = 0.05, a = 1, phi = 0.1), N = 100 steps.
 

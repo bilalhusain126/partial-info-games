@@ -1,5 +1,17 @@
 # Batch summary
 
+## Corrections after the audit of 2026-11-19 (audit/REPORT.md); these supersede the statements below
+
+- Equilibrium concept. The learned method computes the open-loop Nash equilibrium (other players' orders held fixed as processes), as in Wu and Jaimungal. The exact-class solver `games/pt_kernel.py` computes the closed-loop one (other players' rules held fixed, so their orders react through the price); `audit/checks/pt_kernel_openloop.py` computes the open-loop one. The two differ by 1.9% at lam = 1 and by 149% at lam = 2 (mean |nu| 0.358 open-loop vs 0.792 closed-loop).
+- lam = 2 is not a failure of the method. The three corrected learned seeds are 4.5-6.9% from the open-loop equilibrium (mean |nu| 0.351-0.362 vs 0.358) and 62-63% from the closed-loop one. The "range limit", the lam = 2 stationarity test (9.5% gain, which used the closed-loop best response) and "private traders trade 80% more at lam = 2" are withdrawn. What the exact solver shows at lam = 2 is the size of the reaction channel: letting the opponent respond through the price more than doubles equilibrium trading.
+- Headline at lam = 1: the learned three-seed average is 3.0 / 3.1% from the open-loop equilibrium (3.5 / 3.7% from the closed-loop one).
+- Cost-based checks (exploitability, model-free optimality check) perturb one player while the others' networks react through the price, so at lam > 0 they test the closed-loop condition and are not zero at the open-loop equilibrium. Accuracy measures: the exact references and the FOC residual only.
+- Markov-chain game: at 8k paths and lam = 0 the last iterate drifts from 11% to 26% over iterations 4-11, hidden by the averaging; at lam = 1 the seeds agree only to 17-21% and the per-iteration change stays at about 10% of |nu|, so "converges" is too strong; the optimality-check ratios do not support "within 5-12% of optimal".
+- Bergault-Sanchez-Betancourt: the paper quotes no numerical values, so the reference is "consistent with the paper's figure ranges", not "matches quoted values". Most of the average-flow error is the finite-population floor. The run at the paper's stiff parameters (bsb_paper_N1000) diverged; it was not "untested". bsb_game.py is a standalone script, not on the engine.
+- Wu-Jaimungal: the h = 0 reference is continuous-time and 5-7% from the discrete optimum; the full-information linear Picard is a consistency check under a linear ansatz, not an exact reference.
+- Firoozi-Caines: "the paper's solution is exact" should read "the paper's construction is exact in this instance".
+- Reproducibility: the Hessian check, the stationarity test, the seeds-vs-kernel comparisons, the Casgrain-Jaimungal cross-check and the open/closed-loop comparison lacked scripts; audit/checks/ supplies four of them, the rest are to be added.
+
 ## Scaling at lam = 0 (exact reference, recomputed after the reference fix of 2026-11-18), control variate on, 128 epochs per iteration
 
 | paths | trader 1 | trader 2 | FOC residual 1 | FOC residual 2 |
@@ -13,7 +25,7 @@
 Figure: results/scaling.png
 
 
-## Private two-way case, lam = 2, control variate on
+## Private two-way case, lam = 2, control variate on [pre-fix runs with the wrong first-order condition; superseded]
 
 | seed | final change | FOC residual 1 | FOC residual 2 | exploitability 1 | exploitability 2 |
 |---|---|---|---|---|---|
@@ -67,10 +79,10 @@ Trading intensity, mean |nu| over paths and time: private 0.167, full informatio
 | private | 0.5 | 4.6% | 4.7% | 0.157 / 0.157 |
 | private (headline) | 1 | 5.2% | 4.3% | 0.174 / 0.177 |
 | full information | 2 | 3.2% | 3.3% | 0.434 / 0.442 |
-| private, seeds 1-3 | 2 | 63% each (seeds agree within 7-8%) | | 0.36 / 0.79 |
+| private, seeds 1-3 | 2 | 63% each vs the closed-loop solution; 4.5-6.9% vs the open-loop one (see corrections) | | 0.36 / 0.79 (closed-loop); 0.358 (open-loop) |
 
 The private-information equilibrium is computed to 4-5% at lam <= 1 against an independent solver; the 4% shrinkage of the controls seen at 8k paths is 1.7% at 16k. The full-information gap of the earlier runs was the first-order-condition bug. At the edge case lam = 2 the learned seeds agree with each other but not with the kernel branch (test of stationarity below).
-- Stationarity test at lam = 2 (private): the learned strategy, fitted as a linear map of own observations (5% fit error), is NOT an equilibrium under the exact cost: each trader gains 9.4-9.7% of its cost by an exact best response to the learned opponent (kernel-pair cost -0.356 vs learned-pair -0.154). So at lam = 2 the learned iteration (12 iterations, damping 0.6) stops short of the equilibrium rather than finding a second one; the kernel iteration itself needed 96 damped iterations there against 18 at lam = 1, i.e. the best-response map is close to non-contractive. Same failure type as the strong-coupling Wu-Jaimungal broker: the method's working range is set by the gain of the best-response map, and the edge cases need continuation or many more damped iterations.
+- [WITHDRAWN, see corrections: compared against the closed-loop equilibrium] Stationarity test at lam = 2 (private): the learned strategy, fitted as a linear map of own observations (5% fit error), is NOT an equilibrium under the exact cost: each trader gains 9.4-9.7% of its cost by an exact best response to the learned opponent (kernel-pair cost -0.356 vs learned-pair -0.154). So at lam = 2 the learned iteration (12 iterations, damping 0.6) stops short of the equilibrium rather than finding a second one; the kernel iteration itself needed 96 damped iterations there against 18 at lam = 1, i.e. the best-response map is close to non-contractive. Same failure type as the strong-coupling Wu-Jaimungal broker: the method's working range is set by the gain of the best-response map, and the edge cases need continuation or many more damped iterations.
 
 ## Non-Gaussian two-trader game (private Markov-chain signals, games/pm_game.py), 2026-11-19
 
