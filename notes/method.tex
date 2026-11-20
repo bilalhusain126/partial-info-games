@@ -89,12 +89,17 @@ The random variable $\Lambda^i_t$ depends on the future state and on the future 
 \subsection{Equilibrium as a fixed point}
 \label{sec:fixed-point}
 
-The controls $u^\star$ form an open-loop Nash equilibrium if $J^i[u^{i\star}, u^{-i\star}] \ge J^i[v, u^{-i\star}]$ for every player $i$ and every $v \in \mathcal{A}^i$, with $u^{-i\star}$ held fixed as processes. In a closed-loop equilibrium, the strategies of the other players are instead held fixed as functions of their observations. By \eqref{eq:control}, the controls $u$ form an open-loop Nash equilibrium if and only if they are a fixed point of the map
+The controls $u^\star$ form an open-loop Nash equilibrium if $J^i[u^{i\star}, u^{-i\star}] \ge J^i[v, u^{-i\star}]$ for every player $i$ and every $v \in \mathcal{A}^i$, with $u^{-i\star}$ held fixed as processes. In a closed-loop equilibrium, the strategies of the other players are instead held fixed as functions of their observations. 
+
+Equation \eqref{eq:control}, for $i = 1, \dots, n$, defines a fixed-point problem. We denote by $\Psi$ the operator
 \begin{equation}
   \label{eq:psi}
   \big( \Psi(u) \big)^i_t = \frac{1}{2 a_i} \E\big[ \Lambda^i_t[u] \,\big|\, \F^i_t \big] , \qquad i = 1, \dots, n ,
 \end{equation}
-where $\Lambda^i_t[u]$ is evaluated under the controls $u$.
+where $\Lambda^i_t[u]$ is $\Lambda^i_t$ evaluated under the controls $u$. The controls $u$ form an open-loop Nash equilibrium if and only if $u = \Psi(u)$. Given the $k$-th approximation $u^{(k)}$, the Picard iteration defines the next approximation by
+\begin{equation*}
+  u^{i,(k+1)}_t = \frac{1}{2 a_i} \E\big[ \Lambda^i_t[u^{(k)}] \,\big|\, \F^i_t \big] , \qquad i = 1, \dots, n .
+\end{equation*}
 
 \subsection{Conditional expectations by regression}
 \label{sec:regression}
@@ -109,7 +114,7 @@ Every element of $L^2(\F^i_t)$ is a function of the observed path $(O^i_s)_{s \l
 \subsection{Iteration}
 \label{sec:iteration}
 
-We compute the fixed point of $\Psi$ by the damped Picard iteration
+In practice, we damp the Picard iteration,
 \begin{equation}
   \label{eq:picard}
   u^{(k+1)} = (1 - \rho) \, u^{(k)} + \rho \, \Psi\big( u^{(k)} \big) , \qquad \rho \in (0, 1] ,
