@@ -89,14 +89,14 @@ The right-hand side of \eqref{eq:control} depends on the future controls of all 
 \subsection{Equilibrium as a fixed point}
 \label{sec:fixed-point}
 
-The controls $u^\star$ form a Nash equilibrium if $J^i[u^{i\star}, u^{-i\star}] \ge J^i[v, u^{-i\star}]$ for every player $i$ and every $v \in \mathcal{A}^i$. In this definition, the controls $u^{-i\star}$ are held fixed as processes, so a deviation of player $i$ does not change the trades of the other players. This is the open-loop Nash equilibrium, as in Wu and Jaimungal (2024). In the closed-loop Nash equilibrium, the strategies of the other players are held fixed as functions of their observations, and their trades respond to the deviation. The method computes the open-loop equilibrium.
+The controls $u^\star$ form a Nash equilibrium if $J^i[u^{i\star}, u^{-i\star}] \ge J^i[v, u^{-i\star}]$ for every player $i$ and every $v \in \mathcal{A}^i$, with $u^{-i\star}$ held fixed as processes. This is the open-loop equilibrium of Wu and Jaimungal (2024). In the closed-loop equilibrium, the strategies of the other players are instead held fixed as functions of their observations.
 
-We denote by $\Psi$ the map
+By \eqref{eq:control}, the controls $u$ form a Nash equilibrium if and only if they are a fixed point of the map
 \begin{equation}
   \label{eq:psi}
   \big( \Psi(u) \big)^i_t = \frac{1}{2 a_i} \E\big[ \Lambda^i_t[u] \,\big|\, \F^i_t \big] , \qquad i = 1, \dots, n ,
 \end{equation}
-where $\Lambda^i_t[u]$ is \eqref{eq:control} evaluated under the controls $u$. Under the concavity assumption, the controls $u$ form a Nash equilibrium if and only if they are a fixed point of $\Psi$.
+where $\Lambda^i_t[u]$ is evaluated under the controls $u$.
 
 \subsection{Conditional expectations by regression}
 \label{sec:regression}
