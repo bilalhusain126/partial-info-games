@@ -51,7 +51,9 @@ over $\mathcal{A}^i$, where $f^i$ is the running reward and $g^i$ the terminal r
 \subsection{First order condition}
 \label{sec:foc}
 
-We fix $u^{-i}$ and assume that $J^i[\,\cdot\,, u^{-i}]$ is concave. For $w \in \mathcal{A}^i$ and $\varepsilon \in \R$, the perturbed control $u^i + \varepsilon w$ is admissible. The G\^ateaux derivative of $J^i$ at $u^i$ in the direction $w$ is
+The controls $u^\star$ form an open-loop Nash equilibrium if $J^i[u^{i\star}, u^{-i\star}] \ge J^i[v, u^{-i\star}]$ for every player $i$ and every $v \in \mathcal{A}^i$, with $u^{-i\star}$ held fixed as processes. In a closed-loop equilibrium, the strategies of the other players are instead held fixed as functions of their observations.
+
+We compute open-loop equilibria, so we fix the controls $u^{-i}$ of the other players as processes and assume that $J^i[\,\cdot\,, u^{-i}]$ is concave. For $w \in \mathcal{A}^i$ and $\varepsilon \in \R$, the perturbed control $u^i + \varepsilon w$ is admissible. The G\^ateaux derivative of $J^i$ at $u^i$ in the direction $w$ is
 \begin{equation*}
   D^w J^i[u^i] = \lim_{\varepsilon \to 0} \frac{J^i[u^i + \varepsilon w, u^{-i}] - J^i[u^i, u^{-i}]}{\varepsilon} ,
 \end{equation*}
@@ -88,8 +90,6 @@ The random variable $\Lambda^i_t$ depends on the future state and on the future 
 
 \subsection{Equilibrium as a fixed point}
 \label{sec:fixed-point}
-
-The controls $u^\star$ form an open-loop Nash equilibrium if $J^i[u^{i\star}, u^{-i\star}] \ge J^i[v, u^{-i\star}]$ for every player $i$ and every $v \in \mathcal{A}^i$, with $u^{-i\star}$ held fixed as processes. In a closed-loop equilibrium, the strategies of the other players are instead held fixed as functions of their observations. 
 
 Equation \eqref{eq:control}, for $i = 1, \dots, n$, defines a fixed-point problem. We denote by $\Psi$ the operator
 \begin{equation}
