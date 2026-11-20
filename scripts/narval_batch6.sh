@@ -1,5 +1,5 @@
 #!/bin/bash
-# Sixth batch (GPU): larger budgets for the Gaussian games with exact references, to see where the error levels off, and a clean
+# Sixth batch (GPU): larger budgets for the Gaussian games (two traders, Firoozi-Caines, Wu-Jaimungal at h = 0) with exact references, to see where the error levels off, and a clean
 # test of the control variate (same settings with CV=0 and CV=1). STEPS is scaled with the number of paths so that every run sees
 # about 90 passes over its paths per iteration. Validation controls are averaged from iteration AVG_FROM on.
 # Submit from scripts/: sbatch narval_batch6.sh
@@ -28,5 +28,10 @@ for cv in 0 1; do
   CV=$cv M_PATHS=32768 STEPS=1500 BATCH=2048 AVG_FROM=6 SAVE=../results/b6_fc_32k_cv$cv.npz python fc_game.py 16 > ../results/b6_fc_32k_cv$cv.log 2>&1 &
 done
 CV=1 M_PATHS=131072 STEPS=6000 BATCH=2048 AVG_FROM=6 SAVE=../results/b6_fc_128k_cv1.npz python fc_game.py 16 > ../results/b6_fc_128k_cv1.log 2>&1 &
+# (4) Wu-Jaimungal broker-trader game at h = 0, exact discrete-time reference: control variate on/off at 32k, and 128k with it on
+for cv in 0 1; do
+  H=0 CV=$cv M_PATHS=32768 STEPS=1500 BATCH=2048 AVG_FROM=6 ITERS=16 SAVE=../results/b6_wj_h0_32k_cv$cv.npz python npg_wj.py > ../results/b6_wj_h0_32k_cv$cv.log 2>&1 &
+done
+H=0 CV=1 M_PATHS=131072 STEPS=6000 BATCH=2048 AVG_FROM=6 ITERS=16 SAVE=../results/b6_wj_h0_128k_cv1.npz python npg_wj.py > ../results/b6_wj_h0_128k_cv1.log 2>&1 &
 wait
 echo "batch6 done"
