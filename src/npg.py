@@ -132,14 +132,75 @@ class Solver:
             vstate, vctrl, _ = s.rollout(s.exo_v)
             chg = 0.0 if prev is None else float(sum(((vctrl[i] - prev[i]) ** 2).mean() for i in range(M.n_players)).sqrt())
             msg = f'it {it:2d} rho {s.rho_n:.2f} loss {loss:.2e} change {chg:.4f}'
+            if it >= avg_from:                          # Polyak average of the validation controls over iterations (with or without a reference)
+                n_avg += 1; avg = [c.clone() for c in vctrl] if avg is None else [a + (c - a) / n_avg for a, c in zip(avg, vctrl)]
             if ref is not None:
                 errs = [float(((vctrl[i] - ref[i]) ** 2).mean().sqrt() / (ref[i] ** 2).mean().sqrt()) for i in range(M.n_players)]
                 msg += ' | rel L2 vs ref: ' + ' '.join(f'u{i} {e:.3f}' for i, e in enumerate(errs)); hist.append(errs)
-                if it >= avg_from:                      # Polyak average of the validation controls over iterations
-                    n_avg += 1; avg = [c.clone() for c in vctrl] if avg is None else [a + (c - a) / n_avg for a, c in zip(avg, vctrl)]
+                if avg is not None:
                     msg += f' | avg({n_avg}): ' + ' '.join(f'u{i} {float(((avg[i] - ref[i]) ** 2).mean().sqrt() / (ref[i] ** 2).mean().sqrt()):.3f}' for i in range(M.n_players))
             log(msg + f' ({time.time()-t0:.0f}s)'); prev = vctrl
         return vstate, (avg if avg is not None else vctrl), hist
+
+def _subset(exo, idx):
+    out = {k: (v[idx] if torch.is_tensor(v) else v) for k, v in exo.items()}
+    if '_nz' in exo: out['_nz'] = {k: v[idx.cpu().numpy()] for k, v in exo['_nz'].items()}
+    return out
+
+def simulate_differentiable(S, exo, live):
+    """Rollout with gradients. Players in `live` act through their networks with the graph kept; the other players act through
+    their networks with the result detached, so their controls enter as fixed values (open loop with respect to the live players).
+    Returns state and controls."""
+    M = S.M; m = next(v for v in exo.values() if torch.is_tensor(v)).shape[0]; state = M.init_state(m)
+    h = [None if p.gru is None else torch.zeros(1, m, p.hid) for p in S.pols]; cols = [[] for _ in range(M.n_players)]
+    for k in range(M.N):
+        tk = S.t[k].expand(m, 1); uk = {}
+        for j, p in enumerate(S.pols):
+            u = p(tk, M.obs_now(j, exo, state, k), None if p.gru is None else h[j][0]); uk[j] = u if j in live else u.detach(); cols[j].append(uk[j])
+        M.step(state, uk, k)
+        for j, p in enumerate(S.pols):
+            if p.gru is not None:
+                inc = M.obs_inc(j, exo, state, k); hj = p.gru(inc[:, None], h[j])[1]; h[j] = hj if j in live else hj.detach()
+    return state, [torch.stack(c, 1) for c in cols]
+
+def run_direct(S, iters, steps=None, closed=True, lr=None, batch=None, ref=None, log=lambda m: print(m, flush=True)):
+    """Gradient play on the realised costs (model.cost). At each step every player takes an Adam step on its own expected cost,
+    estimated on a minibatch of simulated paths, with respect to its own network parameters only. Closed loop (default): one rollout
+    with every network in the graph, so player i's gradient includes the reaction of the other players' controls to player i's
+    actions through their observations. Open loop (closed=False): for player i the other players' controls are detached, i.e. held
+    fixed as processes. A fixed point of either scheme satisfies the first order condition of the corresponding Nash equilibrium
+    within the network class. Options: steps per logged iteration (default S.steps), lr (default S.lr / 3), batch (default S.batch).
+    The validation controls are averaged over the second half of the iterations."""
+    M = S.M; steps = steps or S.steps; batch = batch or S.batch; lr = lr or S.lr / 3; t0 = time.time()
+    opts = [torch.optim.Adam(p.parameters(), lr=lr) for p in S.pols]; m = next(v for v in S.exo_tr.values() if torch.is_tensor(v)).shape[0]
+    avg = None; n_avg = 0; prev = None; hist = []
+    for it in range(iters):
+        run_cost = [0.0] * M.n_players
+        for st in range(steps):
+            sub = _subset(S.exo_tr, torch.randint(0, m, (batch,)))
+            if closed:
+                state, ctrl = simulate_differentiable(S, sub, set(range(M.n_players)))
+                Js = [M.cost(i, sub, state, ctrl).mean() for i in range(M.n_players)]
+                grads = [torch.autograd.grad(Js[i], list(S.pols[i].parameters()), retain_graph=i < M.n_players - 1) for i in range(M.n_players)]
+            else:
+                Js, grads = [], []
+                for i in range(M.n_players):
+                    state, ctrl = simulate_differentiable(S, sub, {i}); J = M.cost(i, sub, state, ctrl).mean()
+                    Js.append(J); grads.append(torch.autograd.grad(J, list(S.pols[i].parameters())))
+            for i, (o, g) in enumerate(zip(opts, grads)):
+                for q, gq in zip(S.pols[i].parameters(), g): q.grad = gq
+                nn.utils.clip_grad_norm_(S.pols[i].parameters(), 5.0); o.step(); run_cost[i] += float(Js[i]) / steps
+        _, vctrl, _ = S.rollout(S.exo_v)
+        if it >= iters // 2:
+            n_avg += 1; avg = [c.clone() for c in vctrl] if avg is None else [a + (c - a) / n_avg for a, c in zip(avg, vctrl)]
+        chg = 0.0 if prev is None else float(sum(((vctrl[i] - prev[i]) ** 2).mean() for i in range(M.n_players)).sqrt()); prev = vctrl
+        msg = f'direct ({"closed" if closed else "open"}) it {it:2d} cost ' + ' '.join(f'{c:.5f}' for c in run_cost) + f' change {chg:.4f}'
+        if ref is not None:
+            errs = [float(((vctrl[i] - ref[i]) ** 2).mean().sqrt() / (ref[i] ** 2).mean().sqrt()) for i in range(M.n_players)]; hist.append(errs)
+            msg += ' | rel L2 vs ref: ' + ' '.join(f'u{i} {e:.3f}' for i, e in enumerate(errs))
+            if avg is not None: msg += f' | avg({n_avg}): ' + ' '.join(f'u{i} {float(((avg[i] - ref[i]) ** 2).mean().sqrt() / (ref[i] ** 2).mean().sqrt()):.3f}' for i in range(M.n_players))
+        log(msg + f' ({time.time()-t0:.0f}s)')
+    return avg if avg is not None else vctrl, hist
 
 def exploitability(S, i, iters=6, steps=None, m_eval=4096, log=lambda m: print(m, flush=True)):
     """Freeze every policy except player i's, re-solve player i's single-agent problem by the same Picard regression with a larger fit

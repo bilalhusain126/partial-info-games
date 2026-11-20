@@ -11,7 +11,7 @@ Usage: python3 pt_game.py [iters]  (env: LAM, A_COST, INFO, M_PATHS, STEPS, BATC
 import os, sys
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'src'))
 import os, sys, math, time, numpy as np, torch
-from npg import Solver, exploitability, foc_residual, gateaux_check
+from npg import Solver, exploitability, foc_residual, run_direct, gateaux_check
 
 T = 1.0; N = int(os.environ.get('N_STEPS', '50')); DT = T / N; tg = np.linspace(0, T, N + 1)
 LAM = float(os.environ.get('LAM', '1.0')); A_ = float(os.environ.get('A_COST', '0.5')); PHI, PSI = 0.1, 1.0
@@ -120,8 +120,19 @@ if __name__ == '__main__':
     elif INFO == 'full':
         nu_ex, chg = linear_picard_full(S.exo_v); ref = [torch.tensor(nu_ex[:, i], dtype=torch.float32) for i in range(2)]
         print(f'full-info linear Picard reference: |nu| {np.abs(nu_ex).mean():.3f}, final change {chg:.1e}, |lam nu|/|alpha| {LAM * np.abs(nu_ex).mean() / np.abs(S.exo_v["a1"].cpu().numpy()).mean():.2f}', flush=True)
+    if ref is None and os.environ.get('REF_NPZ'):   # exact open-loop controls on the validation paths (references/pt_private_lam*.npz)
+        ref = [torch.tensor(np.load(os.environ['REF_NPZ'])['nu_open'][:, i], dtype=torch.float32) for i in range(2)]
+        print(f'open-loop exact-class reference from {os.path.basename(os.environ["REF_NPZ"])}', flush=True)
     print(f'INFO={INFO} LAM={LAM} a={A_} N={N} M={S.m}', flush=True)
     vstate, vctrl, hist = S.run(ITERS, ref=ref)
+    if os.environ.get('DIRECT'):                 # DIRECT=closed|open: gradient play on the realised costs, warm-started from the Picard solution
+        dref = ref
+        if os.environ.get('REF_NPZ'):            # reference controls on the validation paths: keys nu_closed / nu_open (kernel) or nu1, nu2
+            d = np.load(os.environ['REF_NPZ']); key = f"nu_{os.environ['DIRECT']}"
+            dref = [torch.tensor((d[key][:, i] if key in d else d[f'nu{i + 1}']), dtype=torch.float32) for i in range(2)]
+        vctrl, hist = run_direct(S, int(os.environ.get('DIRECT_ITERS', '20')), steps=int(os.environ.get('DIRECT_STEPS', '200')), closed=os.environ['DIRECT'] == 'closed',
+                                 lr=float(os.environ.get('DIRECT_LR', '3e-4')), ref=dref)
+        vstate, _, _ = S.rollout(S.exo_v)
     if os.environ.get('FOC_CHECK'):
         for i in range(2): foc_residual(S, i)
     if os.environ.get('GATEAUX'):

@@ -8,7 +8,7 @@ so the linear-strategy fixed point of pt_kernel.py does not apply. The learned s
 Exact reference at lam = 0 (decoupled): trader i alone with signal m = alpha_i + E[alpha_j | F^i]; the discrete-time problem is linear-quadratic in
 the inventory with an exogenous adapted signal, solved by a backward recursion whose random coefficient is a sum of conditional expectations of the
 future signal, E[alpha(t_l) | F(t_k)] = e^{-2 KAP (t_l - t_k)} E[alpha(t_k) | F(t_k)]; the filter is the exact discrete Bayes (HMM) filter.
-Usage: LAM=1 python3 pm_game.py [iters]   (env as pt_game: LAM, A_COST, M_PATHS, STEPS, BATCH, N_STEPS, CV, FOC_CHECK, GATEAUX, SEED, SAVE)"""
+Usage: LAM=1 python3 pm_game.py [iters]   (env as pt_game: LAM, A_COST, M_PATHS, STEPS, BATCH, N_STEPS, CV, CV_JUMP, FOC_CHECK, GATEAUX, SEED, SAVE)"""
 import os, sys, math, time, numpy as np, torch
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'src'))
 from npg import Solver, exploitability, foc_residual, gateaux_check
@@ -17,6 +17,7 @@ T = 1.0; N = int(os.environ.get('N_STEPS', '50')); DT = T / N; tg = np.linspace(
 LAM = float(os.environ.get('LAM', '1.0')); A_ = float(os.environ.get('A_COST', '0.5')); PHI, PSI = 0.1, 1.0
 KAP, AMP, SIG = 1.0, 1.0, 0.5                       # switching rate, chain amplitude (states -AMP, +AMP), price noise
 P_STAY = 0.5 * (1 + math.exp(-2 * KAP * DT))        # exact transition probability of staying over one step (two-state symmetric chain)
+CV_JUMP = bool(int(os.environ.get('CV_JUMP', '0')))  # add the compensated chain increments to the control variate
 
 def simulate_noise(m, seed):
     rng = np.random.default_rng(seed)
@@ -71,7 +72,7 @@ def reference_paths_lam0(ref, nz):
 # ---------------- npg model (identical to pt_game except the signals and the control-variate noise) ----------------
 class PMModel:
     n_players = 2; N = N; DT = DT; d_now = [3, 3]; d_seq = [2, 2]
-    d_full = 5; d_w = 1; cv_gamma = [1.0, 1.0]
+    d_full = 5; d_w = 3 if CV_JUMP else 1; cv_gamma = [1.0, 1.0]
     def __init__(s): j, k = np.indices((N, N)); s.W = torch.tensor(np.where(j > k, DT, 0.0), dtype=torch.float32)
     def exo(s, m, seed):
         nz = simulate_noise(m, seed); a1, a2 = signals(nz)
@@ -94,7 +95,13 @@ class PMModel:
         q = st['q1'] if i == 0 else st['q2']
         return -((q[:, :-1] * st['mu'] - A_ * ctrl[i] ** 2 - PHI * q[:, :-1] ** 2).sum(1) * DT - PSI * q[:, -1] ** 2)
     def full_obs(s, exo, st): return torch.stack([exo['a1'][:, :-1], exo['a2'][:, :-1], st['q1'][:, :-1], st['q2'][:, :-1], st['S'][:, :-1]], -1)
-    def dW(s, exo): return (exo['dws'] / math.sqrt(DT))[..., None]        # only the price noise is Brownian; the chains' noise is not used in the control variate
+    def dW(s, exo):
+        """Martingale increments for the control variate: the price noise and, with CV_JUMP=1 (default 0), the compensated chain
+        increments alpha(t_{k+1}) - r alpha(t_k), r = e^{-2 KAP dt}, which have zero mean given the full information at t_k."""
+        out = [exo['dws'] / math.sqrt(DT)]
+        if CV_JUMP:
+            r = math.exp(-2 * KAP * DT); out += [(a[:, 1:] - r * a[:, :-1]) / math.sqrt(DT) for a in (exo['a1'], exo['a2'])]
+        return torch.stack(out, -1)
 
 if __name__ == '__main__':
     ITERS = int(sys.argv[1]) if len(sys.argv) > 1 else 10
