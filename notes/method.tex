@@ -127,7 +127,7 @@ In practice, we damp the Picard iteration,
   \label{eq:picard}
   u^{(k+1)} = (1 - \rho) \, u^{(k)} + \rho \, \Psi\big( u^{(k)} \big) , \qquad \rho \in (0, 1] ,
 \end{equation}
-in which all players are updated at once. Damping stabilizes the iteration when $\Psi$ is not a contraction, at the cost of more iterations.
+in which all players are updated at once. Without damping, the iteration may oscillate when the best responses of the players are strongly coupled.
 
 To compute \eqref{eq:picard} numerically, at iteration $k$ we simulate the paths under $u^{(k)}$ and replace the target in \eqref{eq:mse} by its damped version. We denote by $\Lambda^{i,(m,k)}_j$ the values of $\Lambda^i$ along these paths. The parameters of $\mathcal{N}^i$ minimize
 \begin{equation}
