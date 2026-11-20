@@ -57,19 +57,19 @@ We fix $u^{-i}$ and assume that $J^i[\,\cdot\,, u^{-i}]$ is concave. For $w \in 
 \end{equation*}
 and $u^i$ is optimal if and only if $D^w J^i[u^i] = 0$ for every $w \in \mathcal{A}^i$.
 
-We denote by
+The reward of player $i$ realized along a path is
 \begin{equation*}
-  R^i = \int_0^T f^i(t, X_t, u_t) \, dt + g^i(X_T)
+  R^i = \int_0^T f^i(t, X_t, u_t) \, dt + g^i(X_T) .
 \end{equation*}
-the reward of player $i$ realized along a path. We denote by
-\begin{equation*}
-  G^i_t = \frac{\delta R^i}{\delta u^i_t}
-\end{equation*}
-the derivative of $R^i$ with respect to the control of player $i$ at time $t$, with the controls of the other players held fixed. It is the change in $R^i$ per unit change in $u^i_t$, computed along the path, and includes the effect of the change on the state at all later times, so that
+We denote by $G^i_t = \delta R^i / \delta u^i_t$ the change in $R^i$ per unit change in the control of player $i$ at time $t$, with the controls of the other players held fixed. It includes the effect of this change on the state at all later times. By the chain rule, the derivative of $R^i$ in the direction $w$ adds these effects over time,
 \begin{equation*}
   \frac{d}{d\varepsilon} R^i[u^i + \varepsilon w] \Big|_{\varepsilon = 0} = \int_0^T w_t \cdot G^i_t \, dt .
 \end{equation*}
-Taking expectations gives $D^w J^i[u^i] = \E[ \int_0^T w_t \cdot G^i_t \, dt ]$. Since $w_t$ depends only on $\F^i_t$, $G^i_t$ may be replaced by its conditional expectation given $\F^i_t$. Taking $w_t = \E[G^i_t \mid \F^i_t]$ shows that $D^w J^i[u^i] = 0$ for every $w \in \mathcal{A}^i$ if and only if
+Taking expectations, and using that $w_t$ depends only on $\F^i_t$,
+\begin{equation*}
+  D^w J^i[u^i] = \E\left[ \int_0^T w_t \cdot G^i_t \, dt \right] = \E\left[ \int_0^T w_t \cdot \E\big[ G^i_t \,\big|\, \F^i_t \big] \, dt \right] .
+\end{equation*}
+The choice $w_t = \E[G^i_t \mid \F^i_t]$ makes the right-hand side $\E[ \int_0^T | \E[G^i_t \mid \F^i_t] |^2 \, dt ]$. Thus, $D^w J^i[u^i] = 0$ for every $w \in \mathcal{A}^i$ if and only if
 \begin{equation}
   \label{eq:foc}
   \E\big[ G^i_t \,\big|\, \F^i_t \big] = 0 .
