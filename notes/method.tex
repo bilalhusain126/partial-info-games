@@ -61,7 +61,7 @@ The reward of player $i$ realized along a path is
 \begin{equation*}
   R^i = \int_0^T f^i(t, X_t, u_t) \, dt + g^i(X_T) .
 \end{equation*}
-Since $J^i = \E[R^i]$, we have $D^w J^i[u^i] = \E[D^w R^i[u^i]]$, so it suffices to differentiate $R^i$ along a single path. We denote by $G^i_t = \delta R^i / \delta u^i_t$ the derivative of $R^i$ with respect to $u^i_t$, with $u^{-i}$ held fixed. The G\^ateaux derivative of $R^i$ in the direction $w$ is then
+Since $J^i = \E[R^i]$, we have $D^w J^i[u^i] = \E[D^w R^i[u^i]]$. We denote by $G^i_t = \delta R^i / \delta u^i_t$ the derivative of $R^i$ with respect to $u^i_t$, with $u^{-i}$ held fixed. The G\^ateaux derivative of $R^i$ in the direction $w$ is then
 \begin{equation*}
   D^w R^i[u^i] = \lim_{\varepsilon \to 0} \frac{R^i[u^i + \varepsilon w] - R^i[u^i]}{\varepsilon} = \int_0^T w_t \cdot G^i_t \, dt .
 \end{equation*}
