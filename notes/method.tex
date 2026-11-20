@@ -79,18 +79,12 @@ Since $w$ is arbitrary in $\mathcal{A}^i$, $D^w J^i[u^i] = 0$ for every $w \in \
   \E\big[ G^i_t \,\big|\, \F^i_t \big] = 0 .
 \end{equation}
 
-\paragraph{Rewards quadratic in the control.} We now assume that the running reward is quadratic in the control of player $i$, with $\partial^2_{u^i} f^i = - 2 a_i I$ and $a_i > 0$. This is the case in all the examples we consider. Then $G^i_t = - 2 a_i u^i_t + \Lambda^i_t$, where $\Lambda^i_t$ does not depend on $u^i_t$. Since $u^i_t$ depends only on $\F^i_t$, \eqref{eq:foc} gives
+\textit{Quadratic case.} We assume that $\partial^2_{u^i} f^i = - 2 a_i I$ with $a_i > 0$, as in all our examples. Then $G^i_t = - 2 a_i u^i_t + \Lambda^i_t$, where $\Lambda^i_t$ does not depend on $u^i_t$. Since $u^i_t$ depends only on $\F^i_t$, \eqref{eq:foc} gives
 \begin{equation}
   \label{eq:control}
   u^i_t = \frac{1}{2 a_i} \E\big[ \Lambda^i_t \,\big|\, \F^i_t \big] .
 \end{equation}
-The random variable $\Lambda^i_t$ depends on the future of the game, including the future controls of player $i$. Thus, \eqref{eq:control} characterizes the optimal control but does not give it explicitly.
-
-For example, when the control of player $i$ enters the state only through an inventory, $dq_t = u^i_t \, dt$, a change of the control at time $t$ changes the inventory by the same amount at every later time. By Fubini's theorem on the triangle $\{0 \le t \le s \le T\}$,
-\begin{equation*}
-  G^i_t = \partial_{u^i} f^i_t + \int_t^T \partial_q f^i_s \, ds + \partial_q g^i_T ,
-\end{equation*}
-which is the calculation of the execution problem. When the control also moves, for example, a price impact that decays over time, each term $\partial_q f^i_s$ is multiplied by the amount by which the control at time $t$ moves the state at time $s$.
+The random variable $\Lambda^i_t$ depends on the future of the game, including the future controls of player $i$. Thus, \eqref{eq:control} characterizes the optimal control but does not give it explicitly. For an inventory $dq_t = u^i_t \, dt$, for example, $G^i_t = \partial_{u^i} f^i_t + \int_t^T \partial_q f^i_s \, ds + \partial_q g^i_T$.
 
 \subsection{Equilibrium as a fixed point}
 \label{sec:fixed-point}
