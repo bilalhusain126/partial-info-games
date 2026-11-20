@@ -51,17 +51,17 @@ over $\mathcal{A}^i$, where $f^i$ is the running reward and $g^i$ the terminal r
 \subsection{First order condition}
 \label{sec:foc}
 
-We fix $u^{-i}$ and assume that $J^i[\,\cdot\,, u^{-i}]$ is concave. For $w \in \mathcal{A}^i$ and $\varepsilon \in \R$, the perturbed control $u^i + \varepsilon w$ is admissible, since $\mathcal{A}^i$ is a linear space. The G\^ateaux derivative of $J^i$ at $u^i$ in the direction $w$ is the derivative of the real function $\varepsilon \mapsto J^i[u^i + \varepsilon w, u^{-i}]$ at $\varepsilon = 0$,
+We fix $u^{-i}$ and assume that $J^i[\,\cdot\,, u^{-i}]$ is concave. For $w \in \mathcal{A}^i$ and $\varepsilon \in \R$, the perturbed control $u^i + \varepsilon w$ is admissible, since $\mathcal{A}^i$ is a linear space. The G\^ateaux derivative of $J^i$ at $u^i$ in the direction $w$ is
 \begin{equation*}
-  D^w J^i[u^i] = \frac{d}{d\varepsilon} J^i[u^i + \varepsilon w, u^{-i}] \Big|_{\varepsilon = 0} .
+  D^w J^i[u^i] = \lim_{\varepsilon \to 0} \frac{J^i[u^i + \varepsilon w, u^{-i}] - J^i[u^i, u^{-i}]}{\varepsilon} ,
 \end{equation*}
-Since $J^i[\,\cdot\,, u^{-i}]$ is concave, $u^i$ is optimal if and only if $D^w J^i[u^i] = 0$ for every $w \in \mathcal{A}^i$.
+and $u^i$ is optimal if and only if $D^w J^i[u^i] = 0$ for every $w \in \mathcal{A}^i$.
 
 The reward of player $i$ realized along a path is
 \begin{equation*}
-  R^i = \int_0^T f^i(t, X_t, u_t) \, dt + g^i(X_T) ,
+  R^i = \int_0^T f^i(t, X_t, u_t) \, dt + g^i(X_T) .
 \end{equation*}
-so that $J^i = \E[R^i]$ and $D^w J^i[u^i] = \E\big[ \frac{d}{d\varepsilon} R^i[u^i + \varepsilon w] |_{\varepsilon = 0} \big]$. It therefore suffices to differentiate $R^i$ along a single path. We denote by $G^i_t = \delta R^i / \delta u^i_t$ the change in $R^i$ per unit change in the control of player $i$ at time $t$, with the controls of the other players held fixed. It includes the effect of this change on the state at all later times. By the chain rule, the derivative of $R^i$ in the direction $w$ adds these effects over time,
+We denote by $G^i_t = \delta R^i / \delta u^i_t$ the change in $R^i$ per unit change in the control of player $i$ at time $t$, with the controls of the other players held fixed. It includes the effect of this change on the state at all later times. By the chain rule, the derivative of $R^i$ in the direction $w$ adds these effects over time,
 \begin{equation*}
   \frac{d}{d\varepsilon} R^i[u^i + \varepsilon w] \Big|_{\varepsilon = 0} = \int_0^T w_t \cdot G^i_t \, dt .
 \end{equation*}
