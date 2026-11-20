@@ -51,7 +51,7 @@ over $\mathcal{A}^i$, where $f^i$ is the running reward and $g^i$ the terminal r
 \subsection{First order condition}
 \label{sec:foc}
 
-We fix $u^{-i}$ and assume that $J^i[\,\cdot\,, u^{-i}]$ is concave. For $w \in \mathcal{A}^i$ and $\varepsilon \in \R$, the perturbed control $u^i + \varepsilon w$ is admissible, since $\mathcal{A}^i$ is a linear space. The G\^ateaux derivative of $J^i$ at $u^i$ in the direction $w$ is
+We fix $u^{-i}$ and assume that $J^i[\,\cdot\,, u^{-i}]$ is concave. For $w \in \mathcal{A}^i$ and $\varepsilon \in \R$, the perturbed control $u^i + \varepsilon w$ is admissible. The G\^ateaux derivative of $J^i$ at $u^i$ in the direction $w$ is
 \begin{equation*}
   D^w J^i[u^i] = \lim_{\varepsilon \to 0} \frac{J^i[u^i + \varepsilon w, u^{-i}] - J^i[u^i, u^{-i}]}{\varepsilon} ,
 \end{equation*}
@@ -112,6 +112,13 @@ We write $L^2(\F^i_t)$ for the space of square integrable $\F^i_t$-measurable ra
 \end{equation}
 Every element of $L^2(\F^i_t)$ is a function of the observed path $(O^i_s)_{s \le t}$. On each simulated path, $\Lambda^i_t$ can be evaluated, since the whole future is known. Thus, the conditional expectation can be approximated by fitting a function of the observed path to these values by minimizing a mean squared error. We represent the function by a recurrent neural network $\mathcal{N}^i(\cdot\,; \theta^i)$, which takes the increments of $O^i$ as input and returns the control at each time step.
 
+To do so numerically, fix a time grid $t_j = j \Delta t$, $j = 0, \dots, N$, with $\Delta t = T/N$. We simulate $M$ paths of $X$ by the Euler--Maruyama scheme, and evaluate $\Lambda^i_{t_j}$ along each path $m$ by a Riemann sum. We denote the result by $\Lambda^{i,(m)}_j$. The parameters of $\mathcal{N}^i$ minimize
+\begin{equation}
+  \label{eq:mse}
+  \mathcal{L}^i(\theta^i) = \frac{1}{M N} \sum_{m=1}^{M} \sum_{j=0}^{N-1} \Big| \mathcal{N}^i\big(t_j, O^{i,(m)}_{[0, t_j]}; \theta^i\big) - \frac{1}{2 a_i} \Lambda^{i,(m)}_j \Big|^2 ,
+\end{equation}
+so that $\mathcal{N}^i$ approximates the right-hand side of \eqref{eq:psi}.
+
 \subsection{Iteration}
 \label{sec:iteration}
 
@@ -122,7 +129,7 @@ In practice, we damp the Picard iteration,
 \end{equation}
 in which all players are updated at once. \textcolor{red}{State conditions under which \eqref{eq:picard} converges, at least in the linear-quadratic case.}
 
-To compute \eqref{eq:picard} numerically, fix a time grid $t_j = j \Delta t$, $j = 0, \dots, N$, with $\Delta t = T/N$. At iteration $k$, we simulate $M$ paths of $X$ under $u^{(k)}$ by the Euler--Maruyama scheme, and evaluate $\Lambda^i$ along each path by a Riemann sum. We denote the result by $\Lambda^{i,(m,k)}_j$. The parameters of $\mathcal{N}^i$ minimize
+To compute \eqref{eq:picard} numerically, at iteration $k$ we simulate the paths under $u^{(k)}$ and replace the target in \eqref{eq:mse} by its damped version. We denote by $\Lambda^{i,(m,k)}_j$ the values of $\Lambda^i$ along these paths. The parameters of $\mathcal{N}^i$ minimize
 \begin{equation}
   \label{eq:loss}
   \mathcal{L}^i(\theta^i) = \frac{1}{M N} \sum_{m=1}^{M} \sum_{j=0}^{N-1} \Big| \mathcal{N}^i\big(t_j, O^{i,(m)}_{[0, t_j]}; \theta^i\big) - (1 - \rho) \, u^{i,(m,k)}_{t_j} - \frac{\rho}{2 a_i} \Lambda^{i,(m,k)}_j \Big|^2 .
