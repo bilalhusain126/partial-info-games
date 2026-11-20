@@ -24,6 +24,8 @@ for sd in 1 2 3; do
   env $COMMON LAM=1.5 SEED=$sd DIRECT=closed REF_NPZ=../references/pt_private_lam1.5.npz SAVE=../results/b8_closed_lam1.5_s$sd.npz python pt_game.py 8 > ../results/b8_closed_lam1.5_s$sd.log 2>&1 &
 done
 env $COMMON LAM=1.5 SEED=1 DIRECT=open REF_NPZ=../references/pt_private_lam1.5.npz SAVE=../results/b8_open_lam1.5_s1.npz python pt_game.py 8 > ../results/b8_open_lam1.5_s1.log 2>&1 &
+# lam = 1.5: closed loop from untrained networks (no open-loop warm start), to show the warm start does not decide the result
+env $COMMON LAM=1.5 SEED=1 DIRECT=closed DIRECT_ITERS=60 REF_NPZ=../references/pt_private_lam1.5.npz SAVE=../results/b8_closed_lam1.5_cold.npz python pt_game.py 0 > ../results/b8_closed_lam1.5_cold.log 2>&1 &
 # lam = 2 (edge of convexity; the exact closed-loop iteration needed 96 damped steps): closed loop at two learning rates
 for lr in 1e-4 3e-5; do
   env $COMMON LAM=2 SEED=1 DIRECT=closed DIRECT_LR=$lr DIRECT_ITERS=40 REF_NPZ=../references/pt_private_lam2.0.npz SAVE=../results/b8_closed_lam2_lr$lr.npz python pt_game.py 8 > ../results/b8_closed_lam2_lr$lr.log 2>&1 &

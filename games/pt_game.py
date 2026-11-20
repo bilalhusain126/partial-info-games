@@ -124,7 +124,8 @@ if __name__ == '__main__':
         ref = [torch.tensor(np.load(os.environ['REF_NPZ'])['nu_open'][:, i], dtype=torch.float32) for i in range(2)]
         print(f'open-loop exact-class reference from {os.path.basename(os.environ["REF_NPZ"])}', flush=True)
     print(f'INFO={INFO} LAM={LAM} a={A_} N={N} M={S.m}', flush=True)
-    vstate, vctrl, hist = S.run(ITERS, ref=ref)
+    if ITERS > 0: vstate, vctrl, hist = S.run(ITERS, ref=ref)
+    else: vstate, vctrl, _ = S.rollout(S.exo_v); hist = []          # ITERS=0 with DIRECT: gradient play from the initial networks (cold start)
     if os.environ.get('DIRECT'):                 # DIRECT=closed|open: gradient play on the realised costs, warm-started from the Picard solution
         dref = ref
         if os.environ.get('REF_NPZ'):            # reference controls on the validation paths: keys nu_closed / nu_open (kernel) or nu1, nu2
