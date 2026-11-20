@@ -61,7 +61,7 @@ The reward of player $i$ realized along a path is
 \begin{equation*}
   R^i = \int_0^T f^i(t, X_t, u_t) \, dt + g^i(X_T) .
 \end{equation*}
-We denote by $G^i_t = \delta R^i / \delta u^i_t$ the derivative of $R^i$ with respect to $u^i_t$, with $u^{-i}$ held fixed. Unlike $\partial_{u^i} f^i$, it includes the effect of $u^i_t$ on the state at all later times. By the chain rule, the G\^ateaux derivative of $R^i$ in the direction $w$, taken along the path, adds these effects over time,
+We denote by $G^i_t = \delta R^i / \delta u^i_t$ the derivative of $R^i$ with respect to $u^i_t$, with $u^{-i}$ held fixed. By the chain rule, the G\^ateaux derivative of $R^i$ in the direction $w$, taken along the path, adds these effects over time,
 \begin{equation*}
   D^w R^i[u^i] = \lim_{\varepsilon \to 0} \frac{R^i[u^i + \varepsilon w] - R^i[u^i]}{\varepsilon} = \int_0^T w_t \cdot G^i_t \, dt .
 \end{equation*}
