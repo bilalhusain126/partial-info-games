@@ -65,9 +65,13 @@ Since $J^i = \E[R^i]$, we have $D^w J^i[u^i] = \E[D^w R^i[u^i]]$. We denote by $
 \begin{equation*}
   D^w R^i[u^i] = \lim_{\varepsilon \to 0} \frac{R^i[u^i + \varepsilon w] - R^i[u^i]}{\varepsilon} = \int_0^T w_t \cdot G^i_t[u^i] \, dt .
 \end{equation*}
-Taking expectations, and using that $w_t$ depends only on $\F^i_t$,
+Taking expectations gives
 \begin{equation*}
-  D^w J^i[u^i] = \E\left[ \int_0^T w_t \cdot G^i_t \, dt \right] = \E\left[ \int_0^T w_t \cdot \E\big[ G^i_t \,\big|\, \F^i_t \big] \, dt \right] .
+  D^w J^i[u^i] = \E\left[ \int_0^T w_t \cdot G^i_t \, dt \right] .
+\end{equation*}
+Since $w_t$ depends only on $\F^i_t$, the tower property gives $\E[w_t \cdot G^i_t] = \E[ \E[w_t \cdot G^i_t \mid \F^i_t] ] = \E[ w_t \cdot \E[G^i_t \mid \F^i_t] ]$ for every $t$. Thus,
+\begin{equation*}
+  D^w J^i[u^i] = \E\left[ \int_0^T w_t \cdot \E\big[ G^i_t \,\big|\, \F^i_t \big] \, dt \right] .
 \end{equation*}
 The choice $w_t = \E[G^i_t \mid \F^i_t]$ makes the right-hand side $\E[ \int_0^T | \E[G^i_t \mid \F^i_t] |^2 \, dt ]$. Thus, $D^w J^i[u^i] = 0$ for every $w \in \mathcal{A}^i$ if and only if
 \begin{equation}
