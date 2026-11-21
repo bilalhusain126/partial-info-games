@@ -1,0 +1,178 @@
+Results of the code before the rewrite into src/pig (last commit f2be1f7, scripts in games/ and scripts/). The rewrite
+reproduces that code exactly on the same seeds; the study is rerun with experiments/runs.py.
+
+# Batch summary
+
+## Corrections after the audit of 2026-11-19 (audit/REPORT.md); these supersede the statements below
+
+- Equilibrium concept. The learned method computes the open-loop Nash equilibrium (other players' orders held fixed as processes), as in Wu and Jaimungal. The exact-class solver `games/pt_kernel.py` computes the closed-loop one (other players' rules held fixed, so their orders react through the price); `audit/checks/pt_kernel_openloop.py` computes the open-loop one. The two differ by 1.9% at lam = 1 and by 149% at lam = 2 (mean |nu| 0.358 open-loop vs 0.792 closed-loop).
+- lam = 2 is not a failure of the method. The three corrected learned seeds are 4.5-6.9% from the open-loop equilibrium (mean |nu| 0.351-0.362 vs 0.358) and 62-63% from the closed-loop one. The "range limit", the lam = 2 stationarity test (9.5% gain, which used the closed-loop best response) and "private traders trade 80% more at lam = 2" are withdrawn. What the exact solver shows at lam = 2 is the size of the reaction channel: letting the opponent respond through the price more than doubles equilibrium trading.
+- Headline at lam = 1: the learned three-seed average is 3.0 / 3.1% from the open-loop equilibrium (3.5 / 3.7% from the closed-loop one).
+- Cost-based checks (exploitability, model-free optimality check) perturb one player while the others' networks react through the price, so at lam > 0 they test the closed-loop condition and are not zero at the open-loop equilibrium. Accuracy measures: the exact references and the FOC residual only.
+- Markov-chain game: at 8k paths and lam = 0 the last iterate drifts from 11% to 26% over iterations 4-11, hidden by the averaging; at lam = 1 the seeds agree only to 17-21% and the per-iteration change stays at about 10% of |nu|, so "converges" is too strong; the optimality-check ratios do not support "within 5-12% of optimal".
+- Bergault-Sanchez-Betancourt: the paper quotes no numerical values, so the reference is "consistent with the paper's figure ranges", not "matches quoted values". Most of the average-flow error is the finite-population floor. The run at the paper's stiff parameters (bsb_paper_N1000) diverged; it was not "untested". bsb_game.py is a standalone script, not on the engine.
+- Wu-Jaimungal: the h = 0 reference is continuous-time and 5-7% from the discrete optimum; the full-information linear Picard is a consistency check under a linear ansatz, not an exact reference.
+- Firoozi-Caines: "the paper's solution is exact" should read "the paper's construction is exact in this instance".
+- Reproducibility: the Hessian check, the stationarity test, the seeds-vs-kernel comparisons, the Casgrain-Jaimungal cross-check and the open/closed-loop comparison lacked scripts; audit/checks/ supplies four of them, the rest are to be added.
+
+## Scaling at lam = 0 (exact reference, recomputed after the reference fix of 2026-11-18), control variate on, 128 epochs per iteration
+
+| paths | trader 1 | trader 2 | FOC residual 1 | FOC residual 2 |
+|---|---|---|---|---|
+| 2048 | 0.078 | 0.078 | 0.1321 | 0.1222 |
+| 4096 | 0.064 | 0.062 | 0.0871 | 0.0935 |
+| 8192 | 0.055 | 0.050 | 0.0828 | 0.0987 |
+| 16384 | 0.046 | 0.045 | 0.1123 | 0.0753 |
+| 32768 | 0.037 | 0.032 | 0.0437 | 0.0574 |
+
+Figure: results/scaling.png
+
+
+## Private two-way case, lam = 2, control variate on [pre-fix runs with the wrong first-order condition; superseded]
+
+| seed | final change | FOC residual 1 | FOC residual 2 | exploitability 1 | exploitability 2 |
+|---|---|---|---|---|---|
+| 1 | 0.0092 | 0.0760 | 0.0629 | -1.25% | -1.01% |
+| 2 | 0.0098 | 0.0713 | 0.0646 | -2.51% | +0.98% |
+| 3 | 0.0104 | 0.0599 | 0.0696 | -1.61% | +0.32% |
+
+Seed agreement (rel L2 between seeds on the common validation paths): s1-s2: trader1 0.062, trader2 0.063, s1-s3: trader1 0.073, trader2 0.075, s2-s3: trader1 0.085, trader2 0.081
+
+Trading intensity, mean |nu| over paths and time: private 0.167, full information 0.199 (exact full-info 0.197); rel L2 between private and full-information controls on the same paths 0.638
+
+## Continuity in the impact parameter (private case vs the exact lam = 0 solution on the same validation paths)
+
+| lam | rel L2 of trader 1 to the exact lam=0 control | mean abs control |
+|---|---|---|
+| 0 (learned, 16k) | 0.046 | 0.148 (exact 0.146) |
+| 0.25 | 0.089 | 0.154 |
+| 0.5 | 0.149 | 0.159 |
+| 2 | 0.459 | 0.167 |
+
+## Other runs (final averaged relative L2 vs exact, from the logs)
+
+- bsb_gentle_pop128: broker 0.039, avg flow 0.049, trader_i 0.031
+- bsb_paper_N1000: broker 112.013, avg flow 161.644, trader_i 144.873
+- fc_cv_N200: u0 0.062, u1 0.044
+- fc_high: u0 0.035, u1 0.036
+    checks: FOC0 0.1118 FOC1 0.0574 
+- fc_q10: u0 23.964, u1 1.453
+    checks: FOC0 1.7588 FOC1 4.8652 
+- pt_full2_cv: u0 0.041, u1 0.040
+- wj_T1_h1_full: eta 0.098, nu 0.065
+- wj_T1_h1_gru: it 14 loss 2.37e-02 change 0.0188 | BR residual (pathwise) trader 0.679 broker 0.981 (2578s)
+- wj_h0_cv: u0 0.052, u1 0.071
+- wj_strong_h0_gru: eta 0.739, nu 3.456
+- wj_strong_h1_full: eta 0.089, nu 0.073
+- wj_strong_h1_gru: it 14 loss 2.71e-01 change 0.0968 | BR residual (pathwise) trader 0.473 broker 1.009 (5284s)
+
+## Follow-ups (laptop, 2026-11-18 evening)
+
+- Bergault-SB reference check (regress bracket on the exact features along closed-form paths, 16k paths, population 32): broker 1.9%, trader 3.2%. Reference consistent.
+- Seed-average test, lam = 0, 8k paths, CV: single-seed errors trader 1 [5.2, 4.7, 4.7]%, trader 2 [5.8, 5.4, 5.3]%; three-seed averaged control 4.2% / 4.8%; pure variance would give ~2.8%. A finite-sample bias of ~4% at 8k, which the 32k single-seed result (3.7% / 3.2%) shows is not a fixed floor.
+- FOC residual vs true error under strong coupling, full information lam = 2, 8k paths, CV: residual 1.7% / 1.9%, true error 4.0% / 4.2% (factor ~2.3). The residual underestimates the error at strong coupling; at lam = 0 the factor was ~1.5. Applied to the private lam = 2 case, residuals of 6-8% suggest a true error of 10-15%.
+- Open: the full-information lam = 2 run has negligible regression noise (loss 5e-5) yet a 4% systematic gap to the linear-Picard reference.
+- Strong-coupling Wu-Jaimungal (a = b = 0.1), damping 0.2 and 0.1, 40 iterations, GPU (batch 3): trader converges to 7.3% vs exact at h = 0 (both dampings); broker's error drifts from 20% (iteration 9) to 70-80% (iteration 39) with its best-response residual at 1.0 throughout, i.e. the broker's regression never fits its target. Full-information broker (linear regression) reached 7.3%, so this is a regression failure at high gain (target ten times larger relative to the control than at a = 1; standalone prototype has no control variate and a fixed output scale), not an iteration failure. To try: engine version with control variate and rescaled outputs.
+
+## Corrected two-trader runs on the GPU (batch 4, 16k paths, 1500 steps, control variate), vs the exact-class kernel solution, 2026-11-19
+
+| run | lam | trader 1 | trader 2 | mean |nu| learned / kernel |
+|---|---|---|---|---|
+| private | 0.25 | 4.4% | 4.7% | 0.151 / 0.151 |
+| private | 0.5 | 4.6% | 4.7% | 0.157 / 0.157 |
+| private (headline) | 1 | 5.2% | 4.3% | 0.174 / 0.177 |
+| full information | 2 | 3.2% | 3.3% | 0.434 / 0.442 |
+| private, seeds 1-3 | 2 | 63% each vs the closed-loop solution; 4.5-6.9% vs the open-loop one (see corrections) | | 0.36 / 0.79 (closed-loop); 0.358 (open-loop) |
+
+The private-information equilibrium is computed to 4-5% at lam <= 1 against an independent solver; the 4% shrinkage of the controls seen at 8k paths is 1.7% at 16k. The full-information gap of the earlier runs was the first-order-condition bug. At the edge case lam = 2 the learned seeds agree with each other but not with the kernel branch (test of stationarity below).
+- [WITHDRAWN, see corrections: compared against the closed-loop equilibrium] Stationarity test at lam = 2 (private): the learned strategy, fitted as a linear map of own observations (5% fit error), is NOT an equilibrium under the exact cost: each trader gains 9.4-9.7% of its cost by an exact best response to the learned opponent (kernel-pair cost -0.356 vs learned-pair -0.154). So at lam = 2 the learned iteration (12 iterations, damping 0.6) stops short of the equilibrium rather than finding a second one; the kernel iteration itself needed 96 damped iterations there against 18 at lam = 1, i.e. the best-response map is close to non-contractive. Same failure type as the strong-coupling Wu-Jaimungal broker: the method's working range is set by the gain of the best-response map, and the edge cases need continuation or many more damped iterations.
+
+## Non-Gaussian two-trader game (private Markov-chain signals, games/pm_game.py), 2026-11-19
+
+- Signals: independent two-state chains (+-1, switching rate 1), private; price and costs as in the Gaussian game. The conditional expectation of the other trader's signal is the (nonlinear) Wonham filter, so the linear-strategy exact solver does not apply.
+- Exact lam = 0 reference: exact discrete Bayes filter plus a backward recursion for the single-trader problem with an exogenous adapted signal. Checks: filter slope 1.00; regress-on-exact-features test 1.7% / 1.7% (statistical floor); agreement with Casgrain and Jaimungal's closed form (arXiv 1806.04472, eq. 5.12 with the sign of beta/2 corrected, two-state chain, pure diffusion): inventory gain 0.2%, signal gain 5.3% at 50 steps, 1.4% at 200, 0.3% at 800, i.e. discretisation only.
+- Learned runs: batch 5 on the GPU (lam = 0 at 8k and 32k paths vs exact; private lam = 0.5 and lam = 1 with three seeds, FOC and model-free optimality checks).
+
+## Batch 5 (GPU), 2026-11-19
+
+Gaussian two-trader game, headline lam = 1, three seeds at 16k paths vs the exact-class solution: trader 1 5.1 / 5.1 / 5.2%, trader 2 4.8 / 6.1 / 4.9%; seeds agree within 6-7%; the three-seed average is 3.5 / 3.7% from the exact solution; mean |nu| 0.174 (seeds) vs 0.177 (exact). FOC residuals 6-7%.
+
+Markov-chain two-trader game (non-Gaussian):
+- lam = 0 vs the exact solution: 13.7 / 9.0% at 8k paths, 6.2 / 6.1% at 32k (correlation 0.998, slope 0.98, mean |nu| 0.184 vs 0.187). The error falls with budget as in the Gaussian case but from a higher level: the regression target is noisier (loss 0.12 vs 0.03 in the Gaussian game), because the control variate removes only the price noise, not the jumps of the chains.
+- private, lam = 0.5 and lam = 1 (three seeds, 16k paths): the iteration converges (change 0.02-0.03 per iteration); seeds agree within 17-21%; FOC residuals 13-19%; model-free optimality check ratios 0.1-0.6 (0 = optimal, 1 = as far from optimal as a 20% rescaling), i.e. the strategies are within roughly 5-12% of optimal by that measure. Trading intensity rises with the impact parameter (mean |nu| 0.187, 0.197, 0.217 at lam = 0, 0.5, 1).
+Reading: the method runs unchanged on the non-Gaussian game and is near-optimal there, with accuracy at lam = 1 of order 10% at this budget rather than 5%; a control variate for the chain jumps (compensated jump martingale) and a larger budget are the obvious improvements.
+
+## Model-free optimality check on the three older games (laptop, 8k paths; applied to the LAST iterate, not the averaged controls)
+
+| game | player | last-iterate error vs exact | check ratio (0 = optimal, 1 = like a 20% rescaling) |
+|---|---|---|---|
+| Wu-Jaimungal h = 0 | trader | 9.7% | 0.71 |
+| Wu-Jaimungal h = 0 | broker | 15.0% | 1.13 |
+| Firoozi-Caines | major | 8.3% | 0.05 |
+| Firoozi-Caines | minor | 5.9% | 0.76 |
+| two-trader lam = 1 (Gaussian) | trader 1 | ~7% (vs kernel, averaged) | 0.99 |
+| two-trader lam = 1 (Gaussian) | trader 2 | ~5% | 0.31 |
+
+Reading: with six random directions and 4k paths the check is coarse. It scales roughly with the error (a ratio of 1 corresponds to an error of order 15-20%), it would flag a gross error such as the 63% of the lam = 2 case, but it cannot resolve 5% from 15%, and it varies by a factor of several between players with similar errors. It is a safeguard against derivation mistakes, not an accuracy measure; the FOC residual and the exact references remain the accuracy measures. More directions and paths would tighten it.
+
+## Equilibrium concept (audit, 2026-11-19)
+
+The learned method's first-order condition holds the other players' orders fixed as processes (open-loop Nash, as in Wu-Jaimungal). The exact-class solver as written holds the other players' rules fixed, so their orders react through the price (closed-loop Nash; Babichenko's "belief manipulation"). At lam = 1 with private information the two equilibria differ by 1.9% in relative L2 (mean |nu| 0.1766 closed-loop vs 0.1738 open-loop); the learned three-seed average is 3.0 / 3.1% from the open-loop solution and 3.5 / 3.7% from the closed-loop one, consistent with the method computing the open-loop equilibrium. The reaction effect is therefore small at these parameters but should be stated; computing the closed-loop equilibrium with the learned method would require the derivative of the opponents' rules, which is available by automatic differentiation through their networks but is not implemented.
+
+## Closed-loop targets and automatic-differentiation targets (2026-11-19)
+
+- Closed loop (target = derivative of the realised cost with the opponent's network in the graph, CLOSED=1), 8k paths, laptop: lam = 1: 6.7 / 5.1% from the exact closed-loop solution and 6.4 / 5.5% from the open-loop one (the two equilibria differ by 1.9%, so inconclusive); lam = 2: diverged (per-iteration change 0.2 -> 1.5 -> 3.4, strategies ten times too large). The reaction term through the opponent's network slopes destabilises the iteration at strong coupling; the exact closed-loop iteration itself needed 96 damped steps there. Closed loop is future work.
+- Automatic-differentiation targets are now the default in the engine (TARGET=bracket restores the hand-derived ones). Open loop: the other players' controls are fixed tensors, so the target is the exact first order condition of the discrete game. One-time check at the start of each run against the hand-derived functional: two-trader Gaussian 1.4e-7, Markov-chain 1.5e-7, Firoozi-Caines 2.1e-7; Wu-Jaimungal 4.4% at 40 steps, 2.2% at 80, 1.1% at 160, i.e. exactly the continuous-convention term of the hand-derived functional (after fixing the broker cost, h * nu, audit item). Bergault-Sanchez-Betancourt (standalone script): hand-derived target switched to the exact discrete convention (FOC=discrete, default). Reruns of both at laptop budget pending.
+
+## Batches 6-10 (GPU, 2026-11-20/21): budgets, control variate, Markov-chain lam = 1, closed loop
+
+Averaged controls, relative L2 error per player (player 1 / player 2), against exact solutions on the validation paths.
+
+| case | 32k | 64k | 128k |
+|---|---|---|---|
+| two traders, lam = 0 (closed form) | 3.0 / 2.9% | 2.5 / 2.6% | out of GPU memory, rerun in batch 11 |
+| two traders, private, lam = 1 (exact open-loop) | 2.8 / 2.9% | 2.4 / 2.6% | rerun in batch 11 |
+| Firoozi-Caines | 2.2 / 1.9% | 1.7 / 1.6% | 1.1 / 1.5% |
+| Wu-Jaimungal h = 0 (exact discrete), trader / broker | 4.7 / 7.1% | 3.1 / 8.8% | rerun in batch 11 |
+| Markov chain, lam = 0 (exact), jump control variate | 3.5 / 4.4% | 2.8 / 2.6% | 2.4 / 2.3% |
+
+Errors still fall with the budget except the Wu-Jaimungal broker (7-9%). Two traders at lam = 1: mean |nu| 0.1732 vs exact 0.1738, regression slope 1.00 (no shrinkage).
+
+Control variate, 32k, off / on: two traders lam = 0 4.9/4.5% -> 3.0/2.9%; Firoozi-Caines 2.6/3.0% -> 2.2/1.9%; Wu-Jaimungal 4.9/6.8% -> 4.7/7.1% (no effect); Markov chain none 6.8/6.0%, price only 6.6/5.9%, price and jumps 3.5/4.4% (regression loss 0.117 -> 0.025). Kept.
+
+Markov chain, private, lam = 1, three seeds at 64k with the jump control variate and averaging: seeds agree within 3.5-3.6% (16k, last iterate, no jump control variate: 18-19%); first order condition residuals 5.5-7.9%; mean |nu| 0.214-0.215.
+
+Closed loop, two traders, private, lam = 1.5 (exact open- and closed-loop equilibria differ by 8.5%):
+
+| run | vs exact closed loop | vs exact open loop |
+|---|---|---|
+| gradient play, closed, seeds 1-3 | 3.3 / 3.1 / 3.2% | 8.8 / 8.3 / 9.3% |
+| gradient play, open (control) | 8.8% | 3.3% |
+| gradient play, closed, from untrained networks | 5.8% | 10.3% |
+| closed-loop Picard, damping 0.6 / 0.2 / 0.1 | 3.0 / 3.2 / 3.9% | 8.6 / 8.8 / 8.1% |
+
+Both closed-loop methods find the closed-loop equilibrium at lam = 1.5 and separate it from the open-loop one. At lam = 2 (edge of convexity, psi - lam/2 = 0; exact closed and open equilibria differ by 149%) every closed-loop run fails: gradient play 48-51% from the exact solution, closed-loop Picard diverges at damping 0.2 and 0.1.
+
+## Linear-strategy baseline and best-response spectrum (laptop, 2026-11-21)
+
+Markov chain, lam = 0, against the exact (Wonham-filter) solution (games/pm_linear.py: same damped iteration and targets, controls restricted to linear functions of the own observed path, least squares per time step):
+
+| | 32k | 128k |
+|---|---|---|
+| linear-strategy equilibrium | 14.2 / 14.4% | 13.4 / 13.7% |
+| learned (GRU), batches 7 and 9 | 3.5 / 4.4% | 2.4 / 2.3% |
+
+Best linear fit of the exact control on the own observed path, out of sample (65k paths): 11.5% for both traders. No strategy linear in the observed path gets below about 11.5%, so the nonlinearity accounts for most of the error of linear methods here.
+
+Best-response map in the linear-strategy class at the exact equilibria (scripts/br_spectrum.py, output in results/br_spectrum.txt). Spectral radius of the undamped iteration map, and the own-Hessian smallest nonzero / largest eigenvalue (50 zero eigenvalues = coefficients on S(t_0) = 0):
+
+| lam | open loop | closed loop | own Hessian, closed loop |
+|---|---|---|---|
+| 1 | 0.25 | 0.24 | 2.4e-5 / 0.97 |
+| 1.5 | 0.40 | 0.39 | 2.3e-5 / 1.35 |
+| 2 | 0.62 | 0.93 (real eigenvalues +-0.92) | 1.7e-5 / 12.3 |
+
+At lam = 2 the closed-loop map is nearly non-contractive: with damping 0.5 the slowest mode contracts by 0.96 per iteration (about 100 iterations, as the exact solver needed 96), and regression errors are amplified by about 1/(1 - 0.92) = 12. The smallest nonzero Hessian eigenvalue does not collapse (strictly convex on the effective coefficients, so the best response is unique), but the condition number rises from 4e4 to 7e5, which slows gradient play. The open-loop map stays contractive at lam = 2 (0.62), consistent with the learned open-loop seeds reaching 4.5-6.9% there. The closed-loop failure at lam = 2 is a property of the iteration and of the conditioning, not ill-posedness.
+
+Leading eigenvalues of the undamped best-response map at lam = 2 (scripts/br_spectrum.py, LAMS=2.0): closed loop -0.101 +- 0.922i, +0.101 +- 0.922i (modulus 0.928), +0.917, -0.917; open loop 0.07-0.08 +- 0.58-0.61i. With damping 0.5 the factor max|1 - d + d mu| is 0.959 (closed; set by the real eigenvalue +0.917, the complex pair damps to 0.64) and 0.621 (open). Regression error in the slowest closed-loop mode is amplified by about 1/(1 - 0.917) = 12.
+The linear-fit bound (11.5%) uses the whole discrete observed path: the current own signal, inventory and price plus every past increment of the own signal and the price, so it spans all past values.
