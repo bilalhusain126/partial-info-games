@@ -10,7 +10,8 @@ Stages:
     damping          the broker-trader game with damping 0.3 and 0.15
     linear           the Markov-chain game at lam = 0, strategies linear in the observed path, 32768 and 131072 paths
     closed_loop      two traders at lam = 1.5 and 2: gradient play (closed, three seeds at 1.5; open; from untrained
-                     networks) and the closed-loop Picard iteration with damping 0.6, 0.2 and 0.1
+                     networks), the closed-loop Picard iteration with damping 0.6, 0.2 and 0.1, and the open-loop Picard
+                     iteration at lam = 2 (three seeds)
 
 Usage: runs.py <stage> [--dry-run]      all runs of the stage, one after another
        runs.py <stage> --count          number of runs in the stage
@@ -41,6 +42,7 @@ def closed_loop():
              command(game='two_traders', lam=1.5, paths=32768, method='gradient_play_cold')]
     runs += [command(game='two_traders', lam=1.5, paths=32768, method='closed_picard', damping=damping, iterations=iterations)
              for damping, iterations in ((0.6, 16), (0.2, 40), (0.1, 60))]
+    runs += [command(game='two_traders', lam=2.0, paths=32768, seed=seed) for seed in (0, 1, 2)]        # open-loop Picard
     runs += [command(game='two_traders', lam=2.0, paths=32768, method='gradient_play', iterations=40, lr=lr) for lr in (1e-4, 3e-5)]
     runs += [command(game='two_traders', lam=2.0, paths=32768, method='closed_picard', damping=damping, iterations=iterations)
              for damping, iterations in ((0.2, 40), (0.1, 60))]

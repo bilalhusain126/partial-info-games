@@ -11,6 +11,9 @@ declare -A TIME=([budget]=5:00:00 [seeds]=4:00:00 [control_variate]=3:00:00 [wid
 
 STAGE=$1
 [ -n "${TIME[$STAGE]}" ] || { echo "stage must be budget, seeds, control_variate, width, damping, linear or closed_loop"; exit 1; }
+for lam in 1.0 1.5 2.0; do
+    [ -f "../references/two_traders_lam$lam.npz" ] || { echo "missing ../references/two_traders_lam$lam.npz: run references.py first"; exit 1; }
+done
 module load StdEnv/2023 python/3.11
 if [ -n "$2" ]; then
     ARRAY=$2
@@ -20,4 +23,4 @@ fi
 
 mkdir -p logs
 sbatch --account="$ACCOUNT" --time="${TIME[$STAGE]}" --array="$ARRAY" \
-       --job-name="pig-$STAGE" --export=ALL,STAGE="$STAGE" job.sh
+       --job-name="games-$STAGE" --export=ALL,STAGE="$STAGE" job.sh

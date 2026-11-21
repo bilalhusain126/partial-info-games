@@ -4,7 +4,7 @@
 #SBATCH --gpus-per-node=1
 #SBATCH --cpus-per-task=4
 #SBATCH --mem=32G
-#SBATCH --output=logs/%x_%a.out
+#SBATCH --output=logs/%x_%A_%a.out
 
 module load StdEnv/2023 python/3.11 scipy-stack
 source ~/envs/lfc/bin/activate

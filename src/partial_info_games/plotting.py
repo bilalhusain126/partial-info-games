@@ -1,6 +1,7 @@
-"""Plot style: STIX fonts, minimal frames, and the colours of the figures. Call use_style() once.
+"""
+Plot style: STIX fonts, minimal frames, and the colours of the figures. Call use_style() once.
 
-Learned quantities are drawn in LEARNED, exact ones in dashed black, and linear-strategy ones in LINEAR.
+Learned controls are drawn in LEARNED, exact ones in dashed black, and linear-strategy ones in LINEAR.
 """
 
 import matplotlib as mpl
@@ -10,7 +11,7 @@ LINEAR = "#C44E52"       # muted red
 
 
 def use_style():
-    """Set a serif (STIX) matplotlib style for all subsequent figures."""
+    """Sets a serif (STIX) matplotlib style for all subsequent figures."""
     mpl.rcParams.update({
         "font.family": "STIXGeneral",
         "mathtext.fontset": "stix",

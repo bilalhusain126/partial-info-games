@@ -1,4 +1,4 @@
-Results of the code before the rewrite into src/pig (last commit f2be1f7, scripts in games/ and scripts/). The rewrite
+Results of the code before the rewrite into src/partial_info_games (last commit f2be1f7, scripts in games/ and scripts/). The rewrite
 reproduces that code exactly on the same seeds; the study is rerun with experiments/runs.py.
 
 # Batch summary
@@ -153,26 +153,22 @@ Closed loop, two traders, private, lam = 1.5 (exact open- and closed-loop equili
 
 Both closed-loop methods find the closed-loop equilibrium at lam = 1.5 and separate it from the open-loop one. At lam = 2 (edge of convexity, psi - lam/2 = 0; exact closed and open equilibria differ by 149%) every closed-loop run fails: gradient play 48-51% from the exact solution, closed-loop Picard diverges at damping 0.2 and 0.1.
 
-## Linear-strategy baseline and best-response spectrum (laptop, 2026-11-21)
+## Linear-strategy baseline (laptop, 2026-11-21)
 
-Markov chain, lam = 0, against the exact (Wonham-filter) solution (games/pm_linear.py: same damped iteration and targets, controls restricted to linear functions of the own observed path, least squares per time step):
+Markov chain, lam = 0, against the exact (Wonham-filter) solution (same damped iteration and targets, controls restricted to linear functions of the own observed path, least squares per time step):
 
 | | 32k | 128k |
 |---|---|---|
 | linear-strategy equilibrium | 14.2 / 14.4% | 13.4 / 13.7% |
 | learned (GRU), batches 7 and 9 | 3.5 / 4.4% | 2.4 / 2.3% |
 
-Best linear fit of the exact control on the own observed path, out of sample (65k paths): 11.5% for both traders. No strategy linear in the observed path gets below about 11.5%, so the nonlinearity accounts for most of the error of linear methods here.
+Best linear fit of the exact control on the own observed path (the current own signal, inventory and price plus every past increment of the own signal and the price), out of sample (65k paths): 11.5% for both traders. No strategy linear in the observed path gets below about 11.5%.
 
-Best-response map in the linear-strategy class at the exact equilibria (scripts/br_spectrum.py, output in results/br_spectrum.txt). Spectral radius of the undamped iteration map, and the own-Hessian smallest nonzero / largest eigenvalue (50 zero eigenvalues = coefficients on S(t_0) = 0):
+## Batches 11-13 (GPU, 2026-11-21)
 
-| lam | open loop | closed loop | own Hessian, closed loop |
-|---|---|---|---|
-| 1 | 0.25 | 0.24 | 2.4e-5 / 0.97 |
-| 1.5 | 0.40 | 0.39 | 2.3e-5 / 1.35 |
-| 2 | 0.62 | 0.93 (real eigenvalues +-0.92) | 1.7e-5 / 12.3 |
+Seeds at 64k (mean +- spread over seeds 0-2, player 1 / player 2): two traders lam = 0 2.4 +- 0.1 / 2.5 +- 0.1%; private lam = 1 2.3 +- 0.1 / 2.4 +- 0.2%; Firoozi-Caines 1.5 +- 0.2 / 1.6 +- 0.1%; Markov chain lam = 0 2.7 +- 0.2 / 2.7 +- 0.1%. At 128k: two traders lam = 0 2.7 / 2.5%, lam = 1 2.3 / 2.4%. Width 64 is worse (4.5 / 4.3% two traders, 3.7 / 4.2% Markov chain). Broker-trader broker: 7.1 -> 8.8 -> 17.5% at 32k -> 64k -> 128k (damping 0.7); damping 0.15 at 32k 5.8%.
 
-At lam = 2 the closed-loop map is nearly non-contractive: with damping 0.5 the slowest mode contracts by 0.96 per iteration (about 100 iterations, as the exact solver needed 96), and regression errors are amplified by about 1/(1 - 0.92) = 12. The smallest nonzero Hessian eigenvalue does not collapse (strictly convex on the effective coefficients, so the best response is unique), but the condition number rises from 4e4 to 7e5, which slows gradient play. The open-loop map stays contractive at lam = 2 (0.62), consistent with the learned open-loop seeds reaching 4.5-6.9% there. The closed-loop failure at lam = 2 is a property of the iteration and of the conditioning, not ill-posedness.
+## Changes in the rewrite
 
-Leading eigenvalues of the undamped best-response map at lam = 2 (scripts/br_spectrum.py, LAMS=2.0): closed loop -0.101 +- 0.922i, +0.101 +- 0.922i (modulus 0.928), +0.917, -0.917; open loop 0.07-0.08 +- 0.58-0.61i. With damping 0.5 the factor max|1 - d + d mu| is 0.959 (closed; set by the real eigenvalue +0.917, the complex pair damps to 0.64) and 0.621 (open). Regression error in the slowest closed-loop mode is amplified by about 1/(1 - 0.917) = 12.
-The linear-fit bound (11.5%) uses the whole discrete observed path: the current own signal, inventory and price plus every past increment of the own signal and the price, so it spans all past values.
+- The broker-trader game: the broker observes the price increments only (before: also the Kalman estimate of the signal and the transient impact); the trader observes (alpha, Q^I) (before: also Q^B, Y and the Kalman estimate). The broker numbers above are not comparable with the rewrite.
+- The Bergault and Sanchez-Betancourt game and the strong-coupling Wu-Jaimungal runs were dropped; their scripts are at the last commit before the rewrite.
