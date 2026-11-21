@@ -21,6 +21,10 @@ def load(results=RESULTS) -> pd.DataFrame:
             row[f'residual{i}'] = result.get('first_order_residual', [np.nan, np.nan])[i]
             row[f'slope{i}'] = result.get('slope', [np.nan, np.nan])[i]
         rows.append(row)
+    if not rows:
+        print(f'no saved runs in {results}: run the study first (experiments/runs.py)')
+        return pd.DataFrame(columns=['game', 'lam', 'paths', 'seed', 'width', 'iterations', 'control_variate',
+                                     'jump_variate', 'name'] + [f'{key}{i}' for key in ('error', 'mean_abs', 'residual', 'slope') for i in range(2)])
     return pd.DataFrame(rows)
 
 

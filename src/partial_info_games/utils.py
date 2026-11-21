@@ -9,7 +9,7 @@ import torch.nn as nn
 
 # The validation paths, on which every method and every exact reference is compared.
 VALIDATION_SEED = 7
-N_VALIDATION = 2048
+N_VALIDATION = 2000
 
 
 def report(message: str):

@@ -12,7 +12,7 @@ The reference of each game:
 Writes results/<name>.json (all settings, errors, timing) and results/<name>.npz (the validation controls).
 A run whose JSON file exists is skipped.
 
-Usage: run.py --game two_traders --lam 1.0 --paths 65536 [--seed 0] [...]
+Usage: run.py --game two_traders --lam 1.0 --paths 50000 [--seed 0] [...]
 """
 
 import argparse
@@ -39,8 +39,8 @@ def name(config: dict) -> str:
 
 def settings(config: dict) -> dict:
     """All settings of a run: the command-line settings with the defaults filled in."""
-    run = dict(lam=None, seed=0, width=32, damping=DAMPING[config['game']], batch=2048,
-               steps=1500 * config['paths'] // 32768,          # about 90 passes over the paths per iteration
+    run = dict(lam=None, seed=0, width=32, damping=DAMPING[config['game']], batch=2000,
+               steps=3 * config['paths'] // 50,                # 120 passes over the paths per iteration
                control_variate=True, jump_variate=True, residual=False, iterations=16)
     run.update(config)
     run['average_from'] = 6 if run['iterations'] <= 16 else run['iterations'] // 2
@@ -106,7 +106,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--game', required=True, choices=list(DAMPING))
     parser.add_argument('--lam', type=float, help='price impact (two-trader and Markov-chain games)')
-    parser.add_argument('--paths', type=int, default=65536, help='training paths (default 65536); Adam steps scale with paths')
+    parser.add_argument('--paths', type=int, default=50000, help='training paths (default 50000); Adam steps scale with paths')
     parser.add_argument('--seed', type=int, default=0, help='seed of the networks and training paths (default 0)')
     parser.add_argument('--damping', type=float, help='Picard damping (default per game)')
     parser.add_argument('--iterations', type=int, help='Picard iterations (default 16)')

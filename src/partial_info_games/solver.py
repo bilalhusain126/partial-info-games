@@ -55,17 +55,17 @@ class Solver:
     expectation and the fixed point are therefore unchanged, and only the variance of the target drops.
     """
 
-    def __init__(self, game, width: int = 32, damping: float = 0.6, steps: int = 1000, batch: int = 1024,
-                 lr: float = 1e-3, n_paths: int = 8192, control_variate: bool = True, seed: int = 0):
+    def __init__(self, game, width: int = 32, damping: float = 0.6, steps: int = 1000, batch: int = 1000,
+                 lr: float = 1e-3, n_paths: int = 10000, control_variate: bool = True, seed: int = 0):
         """
         Args:
             game: The game (games.base.Game).
             width: GRU width of every control. Default 32.
             damping: rho, the weight of the new target in the Picard step. Default 0.6.
             steps: Adam steps of each regression. Default 1000.
-            batch: Minibatch size of the regression. Default 1024.
+            batch: Minibatch size of the regression. Default 1000.
             lr: Learning rate of the regression. Default 1e-3.
-            n_paths: Number M of training paths. Default 8192.
+            n_paths: Number M of training paths. Default 10000.
             control_variate: Whether to subtract the learned martingale term from the targets. Default True.
             seed: Seed of the network initialisation and of the training paths. Default 0.
         """
@@ -150,7 +150,7 @@ class Solver:
         (the first order condition of the note), so Lambda^i / (2 a_i) = u^i + G^i / (2 a_i). In the open loop the other players'
         controls are held fixed as processes, so the game is simulated once with every player's controls
         fixed at their current values. Each G^i is the derivative of R^i with respect to u^i on that one
-        simulation, by automatic differentiation, in chunks of 4096 paths. game.curvature(i) supplies
+        simulation, by automatic differentiation, in chunks of 5000 paths. game.curvature(i) supplies
         2 a_i dt, the scaling of the derivative on the grid.
 
         Args:
@@ -163,8 +163,8 @@ class Solver:
         game = self.game
         M = controls[0].shape[0]
         all_targets = [torch.zeros_like(c) for c in controls]
-        for start in range(0, M, 4096):
-            index = torch.arange(start, min(start + 4096, M))
+        for start in range(0, M, 5000):
+            index = torch.arange(start, min(start + 5000, M))
             part = subset(exogenous, index)
             fixed = {i: c[index].detach().clone().requires_grad_(True) for i, c in enumerate(controls)}
             state, used, _ = self.simulate(part, fixed)
