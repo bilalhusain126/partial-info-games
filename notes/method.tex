@@ -186,4 +186,34 @@ The computational procedure is as follows.
 For $n = 1$, Algorithm \ref{alg:main} solves a single-agent problem under partial information without learning a filter. The latent-factor method instead learns the filter first, so that the backward process is a function of a Markov state. \textcolor{red}{State when each approach is preferable.}
 \end{remark}
 
+\newpage
+\section*{Personal note: open-loop and closed-loop equilibria}
+
+\subsection*{General process}
+\begin{itemize}[leftmargin=*]
+  \item Two players with controls $u^1_t = \varphi^1(t, O^1_{[0,t]})$ and $u^2_t = \varphi^2(t, O^2_{[0,t]})$. The rule $\varphi^i$ takes the observed path of player $i$ up to $t$ as input.
+  \item Each player has an objective $J^i$ to maximize over admissible controls. $J^i$ depends on the state and on the controls of both players, and thus on the observations of both players.
+  \item To characterize the equilibrium, we perturb the control of player 1, $u^1 + \varepsilon w$, and keep the other player fixed. The deviation is hypothetical. It does not happen in the game.
+  \item The equilibrium requires that no perturbation raises $J^1$, and likewise for player 2. Locally, the G\^ateaux derivative of $J^1$ is zero in every direction $w$.
+  \item Since $J^i$ is concave in the own control, a zero G\^ateaux derivative implies that the control is optimal. Without concavity, it gives only a stationary point.
+  \item This gives the first order condition, which characterizes the optimal control implicitly.
+  \item The perturbation changes the state. Depending on the problem, it therefore changes the observations of the other player. In the trading game, this happens when $\lambda > 0$, because trades move the price.
+  \item What ``keep the other player fixed'' means defines the equilibrium concept.
+\end{itemize}
+
+\subsection*{The two concepts}
+Let $O$ be the observations of player 2 under the unperturbed control $u^1$, and $P$ those under the perturbed control.
+\begin{itemize}[leftmargin=*]
+  \item \textit{Open loop.} The effect of the perturbation on the observations of player 2 is ignored. The control of player 2 still takes $O$ as input, $u^2_t = \varphi^2(t, O_{[0,t]})$, so it keeps its old values on every path. Player 1's reward is still computed with the new state.
+  \item \textit{Closed loop.} The control of player 2 takes $P$ as input, $u^2_t = \varphi^2(t, P_{[0,t]})$, so it responds to the perturbation.
+  \item In the closed loop, $P$ also depends on the response of player 2, because the trades of player 2 move the price. This is not circular. At each $t$, player 2 trades on $P$ up to $t$, and both trades then move the price over the next step. Simulating forward gives $P$.
+  \item If the perturbation does not change the observations of the other player ($\lambda = 0$), then $P = O$ and the two equilibria coincide.
+\end{itemize}
+
+\subsection*{In the method}
+\begin{itemize}[leftmargin=*]
+  \item The Picard method computes the open-loop equilibrium. The target is the derivative of player $i$'s cost with the controls of the other players held fixed as values on each path.
+  \item Closed-loop gradient play keeps the networks of the other players inside the simulation. The derivative then includes their response through their observations.
+\end{itemize}
+
 \end{document}
