@@ -2,4 +2,4 @@
 
 from .solver import (Solver, Control, gradient_play, linear_equilibrium, first_order_residual, relative_l2,
                      use_device, validation_paths)
-from .plotting import use_style, LEARNED, LINEAR
+from .plotting import use_style, plot_controls, LEARNED, LINEAR
