@@ -120,3 +120,32 @@ The learned method's first-order condition holds the other players' orders fixed
 
 - Closed loop (target = derivative of the realised cost with the opponent's network in the graph, CLOSED=1), 8k paths, laptop: lam = 1: 6.7 / 5.1% from the exact closed-loop solution and 6.4 / 5.5% from the open-loop one (the two equilibria differ by 1.9%, so inconclusive); lam = 2: diverged (per-iteration change 0.2 -> 1.5 -> 3.4, strategies ten times too large). The reaction term through the opponent's network slopes destabilises the iteration at strong coupling; the exact closed-loop iteration itself needed 96 damped steps there. Closed loop is future work.
 - Automatic-differentiation targets are now the default in the engine (TARGET=bracket restores the hand-derived ones). Open loop: the other players' controls are fixed tensors, so the target is the exact first order condition of the discrete game. One-time check at the start of each run against the hand-derived functional: two-trader Gaussian 1.4e-7, Markov-chain 1.5e-7, Firoozi-Caines 2.1e-7; Wu-Jaimungal 4.4% at 40 steps, 2.2% at 80, 1.1% at 160, i.e. exactly the continuous-convention term of the hand-derived functional (after fixing the broker cost, h * nu, audit item). Bergault-Sanchez-Betancourt (standalone script): hand-derived target switched to the exact discrete convention (FOC=discrete, default). Reruns of both at laptop budget pending.
+
+## Batches 6-10 (GPU, 2026-11-20/21): budgets, control variate, Markov-chain lam = 1, closed loop
+
+Averaged controls, relative L2 error per player (player 1 / player 2), against exact solutions on the validation paths.
+
+| case | 32k | 64k | 128k |
+|---|---|---|---|
+| two traders, lam = 0 (closed form) | 3.0 / 2.9% | 2.5 / 2.6% | out of GPU memory, rerun in batch 11 |
+| two traders, private, lam = 1 (exact open-loop) | 2.8 / 2.9% | 2.4 / 2.6% | rerun in batch 11 |
+| Firoozi-Caines | 2.2 / 1.9% | 1.7 / 1.6% | 1.1 / 1.5% |
+| Wu-Jaimungal h = 0 (exact discrete), trader / broker | 4.7 / 7.1% | 3.1 / 8.8% | rerun in batch 11 |
+| Markov chain, lam = 0 (exact), jump control variate | 3.5 / 4.4% | 2.8 / 2.6% | 2.4 / 2.3% |
+
+Errors still fall with the budget except the Wu-Jaimungal broker (7-9%). Two traders at lam = 1: mean |nu| 0.1732 vs exact 0.1738, regression slope 1.00 (no shrinkage).
+
+Control variate, 32k, off / on: two traders lam = 0 4.9/4.5% -> 3.0/2.9%; Firoozi-Caines 2.6/3.0% -> 2.2/1.9%; Wu-Jaimungal 4.9/6.8% -> 4.7/7.1% (no effect); Markov chain none 6.8/6.0%, price only 6.6/5.9%, price and jumps 3.5/4.4% (regression loss 0.117 -> 0.025). Kept.
+
+Markov chain, private, lam = 1, three seeds at 64k with the jump control variate and averaging: seeds agree within 3.5-3.6% (16k, last iterate, no jump control variate: 18-19%); first order condition residuals 5.5-7.9%; mean |nu| 0.214-0.215.
+
+Closed loop, two traders, private, lam = 1.5 (exact open- and closed-loop equilibria differ by 8.5%):
+
+| run | vs exact closed loop | vs exact open loop |
+|---|---|---|
+| gradient play, closed, seeds 1-3 | 3.3 / 3.1 / 3.2% | 8.8 / 8.3 / 9.3% |
+| gradient play, open (control) | 8.8% | 3.3% |
+| gradient play, closed, from untrained networks | 5.8% | 10.3% |
+| closed-loop Picard, damping 0.6 / 0.2 / 0.1 | 3.0 / 3.2 / 3.9% | 8.6 / 8.8 / 8.1% |
+
+Both closed-loop methods find the closed-loop equilibrium at lam = 1.5 and separate it from the open-loop one. At lam = 2 (edge of convexity, psi - lam/2 = 0; exact closed and open equilibria differ by 149%) every closed-loop run fails: gradient play 48-51% from the exact solution, closed-loop Picard diverges at damping 0.2 and 0.1.
