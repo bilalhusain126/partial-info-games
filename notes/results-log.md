@@ -191,3 +191,14 @@ Seeds at 64k (mean +- spread over seeds 0-2, player 1 / player 2): two traders l
 - Change: new training paths at every iteration (Solver.run), seed 1000 (seed + 1) + k. The study is rerun with this change; the broker-trader game now has T = 1, N = 50, σ = 0.5.
 - Iterate averaging removed: Solver.run returns the controls of the last iterate, i.e. the trained networks. Averaging the network weights over the last iterates (Polyak averaging) is an option for later.
 - Major-minor default horizon changed from T = 5, N = 100 to T = 1, N = 50, so that every game uses T = 1, N = 50. First order condition check of its exact reference at 20000 paths: 0.023 (major), 0.032 (minor).
+
+## 2026-11-22: cluster batch with new paths at every iteration (last iterate reported)
+
+- Same 42 runs; broker-trader at T = 1, N = 50 (was T = 0.3), major-minor at T = 1, N = 50 (was T = 5), so those two games are not like-for-like with the previous batch.
+- Last-iterate errors (player 1 / player 2, %), 25k / 50k seeds 0-2 / 100k: two traders λ = 0: 2.3/2.1; 1.7/1.8, 2.8/3.3, 1.7/1.6; 2.3/3.2. λ = 1: 2.0/1.9; 1.3/1.5, 1.4/1.3, 2.7/2.4; 2.3/2.5. Markov λ = 0: 3.0/2.4; 2.0/1.9, 2.3/2.6, 1.9/1.9; 2.2/2.8. Major-minor: 2.0/2.0; 1.5/1.9, 2.3/2.4, 2.4/2.2; 0.9/1.0. Broker-trader: 1.0/2.6; 0.4/5.6, 0.5/1.8, 1.0/5.2; 0.2/3.4.
+- No upward drift: errors fall over the first 4-6 iterations (about 10 at λ = 2) and then fluctuate around a level (two traders about 2-4%, broker about 3-7%). The final number therefore depends on which iterate is last; the seed spread reflects this.
+- Errors barely fall from 25k to 100k paths in the two-trader games, so the level is not set by the number of paths alone. Candidates: optimisation noise of each regression (constant learning rate), network capacity.
+- Control variate off (25k): two traders λ = 1 4.9/4.0 against 2.0/1.9; Markov 6.4/4.8 against 3.0/2.4; broker 3.1/8.0 against 1.0/2.6.
+- Broker damping 0.3 / 0.15: 2.9-4.0% broker, no better than 0.7.
+- Coupling (25k): λ = 1.5: 2.3/2.2, 3.9/4.1, 3.7/2.4; λ = 2: 2.1/1.9, 4.1/5.0, 4.7/4.5.
+- Markov λ = 1 first order condition residuals (50k): 0.088/0.102, 0.090/0.114, 0.085/0.083. No calibration of the residual at λ = 0 yet.
