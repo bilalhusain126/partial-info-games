@@ -5,8 +5,10 @@ At an open-loop equilibrium, u^i_t = (1 / 2 a_i) E[ Lambda^i_t | F^i_t ] for eve
 For each reference, the exact controls are fed to Solver.targets on fresh paths, which gives
 Lambda^i / (2 a_i) along each path. The difference target - control is regressed at each t_j on the
 player's information (1, current observation, all past observation increments). Its projection is the
-first order condition residual: zero up to sampling error at an exact equilibrium. The regression uses
-a richer set of features than any exact solution, so the check does not presuppose its form.
+first order condition residual, reported relative to the size of the control: zero up to sampling error
+at an exact equilibrium, and the sampling error falls as n_paths grows (about 5-10% at 16384 paths, with
+up to 2N + 4 features per time). The regression uses a richer set of features than any exact solution,
+so the check does not presuppose its form.
 
 Checked: the exact solutions of the four games, and the two-trader linear-class references at
 lam = 1, 1.5 and 2 (open loop).
@@ -22,7 +24,7 @@ import torch
 
 HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE.parent / 'src'))
-from partial_info_games import Solver, relative_l2, use_device
+from partial_info_games import Solver, use_device
 from partial_info_games.games import TwoTraders, MarkovTraders, BrokerTrader, MajorMinor, LinearStrategies
 
 use_device('cpu')
@@ -57,7 +59,7 @@ def residual(game, exact_controls) -> list:
             projection[:, j] = (features @ coefficients)[:, 0].float()
             if game.increment_dims[i] > 0:
                 past.append(game.increment(i, state, noise, j))
-        residuals.append(relative_l2(projection, controls[i]))
+        residuals.append(float(projection.norm() / controls[i].norm()))
     return residuals
 
 
