@@ -37,28 +37,28 @@ def residual(game, exact_controls) -> list:
 
     Args:
         game: The game.
-        exact_controls: Function noise -> controls [M, n_players, N] to be checked.
+        exact_controls: Function exogenous -> controls [M, n_players, N] to be checked.
 
     Returns:
         Per player, the relative L2 size of the projection of target - control on the player's information.
     """
     solver = Solver(game, steps=0, n_paths=8)          # used only for simulate and targets
-    noise = game.sample(n_paths, 31)
-    exact = torch.tensor(exact_controls(noise), dtype=torch.float32)
+    exogenous = game.sample(n_paths, 31)
+    exact = torch.tensor(exact_controls(exogenous), dtype=torch.float32)
     controls = [exact[:, i] for i in range(game.n_players)]
-    state, _, _ = solver.simulate(noise, fixed=dict(enumerate(controls)))
-    targets = solver.targets(noise, controls)
+    state, _, _ = solver.simulate(exogenous, fixed=dict(enumerate(controls)))
+    targets = solver.targets(exogenous, controls)
     residuals = []
     for i in range(game.n_players):
         past = []
         projection = torch.zeros_like(controls[i])
         for j in range(game.N):
-            features = torch.cat([torch.ones(n_paths, 1), game.observe(i, state, noise, j)] + past, 1).double()
+            features = torch.cat([torch.ones(n_paths, 1), game.observe(i, state, exogenous, j)] + past, 1).double()
             difference = (targets[i][:, j] - controls[i][:, j]).double()
             coefficients = torch.linalg.lstsq(features, difference[:, None], rcond=1e-8, driver='gelsd').solution
             projection[:, j] = (features @ coefficients)[:, 0].float()
             if game.increment_dims[i] > 0:
-                past.append(game.increment(i, state, noise, j))
+                past.append(game.increment(i, state, exogenous, j))
         residuals.append(float(projection.norm() / controls[i].norm()))
     return residuals
 
@@ -74,4 +74,4 @@ for lam in (1.0, 1.5, 2.0):
     game = TwoTraders(lam=lam)
     linear_solver = LinearStrategies(game)
     beta = np.load(HERE / 'references' / f'two_traders_lam{lam}.npz')['beta_open']
-    show(f'TwoTraders lam {lam}, linear class, open loop', residual(game, lambda noise: linear_solver.controls(beta, noise)))
+    show(f'TwoTraders lam {lam}, linear class, open loop', residual(game, lambda exogenous: linear_solver.controls(beta, exogenous)))

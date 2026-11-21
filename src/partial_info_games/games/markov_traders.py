@@ -32,7 +32,7 @@ class MarkovTraders(TradingGame):
 
     @property
     def noise_dim(self) -> int:
-        """Number of martingale increments: the price noise, and the two compensated chain increments."""
+        """Number of martingale increments: the price exogenous, and the two compensated chain increments."""
         return 3 if self.jump_variate else 1
 
     @property
@@ -52,33 +52,33 @@ class MarkovTraders(TradingGame):
         N = self.N
         starts = [rng.integers(0, 2, n_paths), rng.integers(0, 2, n_paths)]
         uniforms = [rng.random((n_paths, N)), rng.random((n_paths, N))]
-        noise = dict(dWS=rng.standard_normal((n_paths, N)) * math.sqrt(self.dt))
+        exogenous = dict(dWS=rng.standard_normal((n_paths, N)) * math.sqrt(self.dt))
         stay = 0.5 * (1 + self.decay)                # probability that a chain keeps its state over one step
         for i, (start, uniform) in enumerate(zip(starts, uniforms), 1):
             state = np.zeros((n_paths, N + 1), dtype=int)
             state[:, 0] = start
             for j in range(N):
                 state[:, j + 1] = np.where(uniform[:, j] < stay, state[:, j], 1 - state[:, j])
-            noise[f'alpha{i}'] = self.amplitude * (2 * state - 1).astype(float)
-        return {key: torch.tensor(value, dtype=torch.float32) for key, value in noise.items()}
+            exogenous[f'alpha{i}'] = self.amplitude * (2 * state - 1).astype(float)
+        return {key: torch.tensor(value, dtype=torch.float32) for key, value in exogenous.items()}
 
     def signal_increment(self, alpha, j):
         """alpha_{t_{j+1}} - alpha_{t_j} (the jumps are already of order one)."""
         return alpha[:, j + 1] - alpha[:, j]
 
-    def martingale_increments(self, noise):
+    def martingale_increments(self, exogenous):
         """
         dW^S / sqrt(dt) and, with jump_variate, the compensated chain increments
         (alpha^i_{t_{j+1}} - decay alpha^i_{t_j}) / sqrt(dt), which have zero mean given alpha^i_{t_j}.
         """
-        increments = [noise['dWS'] / math.sqrt(self.dt)]
+        increments = [exogenous['dWS'] / math.sqrt(self.dt)]
         if self.jump_variate:
             for i in (1, 2):
-                alpha = noise[f'alpha{i}']
+                alpha = exogenous[f'alpha{i}']
                 increments.append((alpha[:, 1:] - self.decay * alpha[:, :-1]) / math.sqrt(self.dt))
         return torch.stack(increments, -1)
 
-    def exact(self, noise):
+    def exact(self, exogenous):
         """
         Exact equilibrium at lam = 0, [M, 2, N].
 
@@ -92,7 +92,7 @@ class MarkovTraders(TradingGame):
             NotImplementedError: If lam != 0.
         """
         if self.lam != 0.0:
-            return super().exact(noise)
+            return super().exact(exogenous)
         dt, N, a, r = self.dt, self.N, self.a, self.decay
 
         # Backward recursion for the feedback coefficients G_j, g_j.
@@ -109,8 +109,8 @@ class MarkovTraders(TradingGame):
             S[j] = dt + S[j + 1] * r * (1 - A[j + 1] * dt / (a + A[j + 1] * dt))
 
         # Controls along the paths, with the Bayes filter of the other chain.
-        alpha = np.stack([noise['alpha1'].cpu().numpy(), noise['alpha2'].cpu().numpy()], 1).astype(np.float64)
-        dWS = noise['dWS'].cpu().numpy().astype(np.float64)
+        alpha = np.stack([exogenous['alpha1'].cpu().numpy(), exogenous['alpha2'].cpu().numpy()], 1).astype(np.float64)
+        dWS = exogenous['dWS'].cpu().numpy().astype(np.float64)
         M = alpha.shape[0]
         stay = 0.5 * (1 + r)
         amplitude, sigma = self.amplitude, self.sigma

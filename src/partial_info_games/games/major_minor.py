@@ -136,41 +136,41 @@ class MajorMinor(Game):
         rng = np.random.default_rng(seed)
         N, dt = self.N, self.dt
         s = math.sqrt(self.initial_variance)
-        noise = dict(x0_0=rng.standard_normal(n_paths) * s, x1_0=rng.standard_normal(n_paths) * s,
+        exogenous = dict(x0_0=rng.standard_normal(n_paths) * s, x1_0=rng.standard_normal(n_paths) * s,
                      dw0=rng.standard_normal((n_paths, N)) * math.sqrt(dt),
                      dw1=rng.standard_normal((n_paths, N)) * math.sqrt(dt),
                      dv0=rng.standard_normal((n_paths, N)) * math.sqrt(dt),
                      dv1=rng.standard_normal((n_paths, N, 2)) * math.sqrt(dt))
-        return {key: torch.tensor(value, dtype=torch.float32) for key, value in noise.items()}
+        return {key: torch.tensor(value, dtype=torch.float32) for key, value in exogenous.items()}
 
-    def initial_state(self, noise):
-        M = noise['dw0'].shape[0]
+    def initial_state(self, exogenous):
+        M = exogenous['dw0'].shape[0]
         state = dict(x0=torch.zeros(M, self.N + 1), x1=torch.zeros(M, self.N + 1))
-        state['x0'][:, 0] = noise['x0_0']
-        state['x1'][:, 0] = noise['x1_0']
+        state['x0'][:, 0] = exogenous['x0_0']
+        state['x1'][:, 0] = exogenous['x1_0']
         return state
 
-    def step(self, state, noise, controls, j):
+    def step(self, state, exogenous, controls, j):
         x0, x1, dt = state['x0'][:, j], state['x1'][:, j], self.dt
-        state['x0'][:, j + 1] = x0 + (self.A0 * x0 + self.B0 * controls[0]) * dt + self.D0 * noise['dw0'][:, j]
-        state['x1'][:, j + 1] = x1 + (self.A1 * x1 + self.G * x0 + self.B1 * controls[1]) * dt + self.D1 * noise['dw1'][:, j]
+        state['x0'][:, j + 1] = x0 + (self.A0 * x0 + self.B0 * controls[0]) * dt + self.D0 * exogenous['dw0'][:, j]
+        state['x1'][:, j + 1] = x1 + (self.A1 * x1 + self.G * x0 + self.B1 * controls[1]) * dt + self.D1 * exogenous['dw1'][:, j]
 
-    def observe(self, i, state, noise, j):
+    def observe(self, i, state, exogenous, j):
         """Empty: each player acts on its observation increments through its GRU."""
-        return torch.zeros(noise['dw0'].shape[0], 0)
+        return torch.zeros(exogenous['dw0'].shape[0], 0)
 
-    def increment(self, i, state, noise, j):
+    def increment(self, i, state, exogenous, j):
         """dy^i over [t_j, t_{j+1}], divided by sqrt(dt)."""
         x0, x1, dt = state['x0'][:, j], state['x1'][:, j], self.dt
         if i == 0:
-            return ((self.L0 * x0 * dt + self.s0 * noise['dv0'][:, j]) / math.sqrt(dt))[:, None]
-        return (torch.stack([self.L1 * x1, self.L2 * x0], -1) * dt + self.s1 * noise['dv1'][:, j]) / math.sqrt(dt)
+            return ((self.L0 * x0 * dt + self.s0 * exogenous['dv0'][:, j]) / math.sqrt(dt))[:, None]
+        return (torch.stack([self.L1 * x1, self.L2 * x0], -1) * dt + self.s1 * exogenous['dv1'][:, j]) / math.sqrt(dt)
 
     def discounting(self):
         """Discount factors exp(-rho t_j), [N]."""
         return torch.tensor(np.exp(-self.rho * np.arange(self.N) * self.dt), dtype=torch.float32)
 
-    def cost(self, i, state, noise, controls):
+    def cost(self, i, state, exogenous, controls):
         """Realised discounted cost of player i."""
         x0, x1 = state['x0'][:, :-1], state['x1'][:, :-1]
         if i == 0:
@@ -183,15 +183,15 @@ class MajorMinor(Game):
         """2 R_i exp(-rho t_j) dt."""
         return 2 * (self.R0 if i == 0 else self.R1) * self.discounting() * self.dt
 
-    def full_state(self, state, noise):
+    def full_state(self, state, exogenous):
         """X_{t_j} = (x^0, x^1) at t_j."""
         return torch.stack([state['x0'][:, :-1], state['x1'][:, :-1]], -1)
 
-    def martingale_increments(self, noise):
+    def martingale_increments(self, exogenous):
         """(dw^0, dw^1) / sqrt(dt)."""
-        return torch.stack([noise['dw0'], noise['dw1']], -1) / math.sqrt(self.dt)
+        return torch.stack([exogenous['dw0'], exogenous['dw1']], -1) / math.sqrt(self.dt)
 
-    def exact(self, noise):
+    def exact(self, exogenous):
         """Exact equilibrium controls of the discretised game on the given paths, [M, 2, N]: major, minor."""
         N, dt = self.N, self.dt
         a0 = 1 + self.A0 * dt
@@ -223,7 +223,7 @@ class MajorMinor(Game):
                                np.diag([self.initial_variance, self.initial_variance, 0.0]))
 
         # Controls along the paths.
-        to_numpy = lambda key: noise[key].cpu().numpy().astype(np.float64)
+        to_numpy = lambda key: exogenous[key].cpu().numpy().astype(np.float64)
         x0, x1 = to_numpy('x0_0'), to_numpy('x1_0')
         dw0, dw1, dv0, dv1 = to_numpy('dw0'), to_numpy('dw1'), to_numpy('dv0'), to_numpy('dv1')
         M = x0.shape[0]

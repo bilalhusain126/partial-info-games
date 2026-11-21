@@ -68,28 +68,28 @@ class BrokerTrader(Game):
             alpha[:, j + 1] = alpha[:, j] - self.kappa * alpha[:, j] * dt + self.sigma_alpha * math.sqrt(dt) * rng.standard_normal(n_paths)
         return dict(alpha=torch.tensor(alpha, dtype=torch.float32), dz=torch.tensor(dz, dtype=torch.float32))
 
-    def initial_state(self, noise):
-        M = noise['dz'].shape[0]
+    def initial_state(self, exogenous):
+        M = exogenous['dz'].shape[0]
         return dict(QI=torch.zeros(M, self.N + 1), QB=torch.zeros(M, self.N + 1))
 
-    def step(self, state, noise, controls, j):
+    def step(self, state, exogenous, controls, j):
         eta, nu = controls[0], controls[1]
         state['QI'][:, j + 1] = state['QI'][:, j] + eta * self.dt
         state['QB'][:, j + 1] = state['QB'][:, j] + (nu - eta) * self.dt
 
-    def observe(self, i, state, noise, j):
+    def observe(self, i, state, exogenous, j):
         """Trader: (alpha, Q^I) at t_j. Broker: empty (it acts on the price increments through its GRU)."""
         if i == 0:
-            return torch.stack([noise['alpha'][:, j], state['QI'][:, j]], -1)
-        return torch.zeros(noise['dz'].shape[0], 0)
+            return torch.stack([exogenous['alpha'][:, j], state['QI'][:, j]], -1)
+        return torch.zeros(exogenous['dz'].shape[0], 0)
 
-    def increment(self, i, state, noise, j):
+    def increment(self, i, state, exogenous, j):
         """Price increment over [t_j, t_{j+1}], divided by sqrt(dt)."""
-        return noise['dz'][:, j:j + 1] / math.sqrt(self.dt)
+        return exogenous['dz'][:, j:j + 1] / math.sqrt(self.dt)
 
-    def cost(self, i, state, noise, controls):
+    def cost(self, i, state, exogenous, controls):
         """Minus the realised reward of the trader (i = 0) or the broker (i = 1)."""
-        alpha = noise['alpha'][:, :-1]
+        alpha = exogenous['alpha'][:, :-1]
         if i == 0:
             Q, trading_cost, running_penalty, terminal_penalty = state['QI'], self.b, self.r_I, self.psi
         else:
@@ -101,22 +101,22 @@ class BrokerTrader(Game):
         """2 b dt for the trader, 2 a dt for the broker."""
         return torch.full((self.N,), 2 * (self.b if i == 0 else self.a) * self.dt)
 
-    def full_state(self, state, noise):
+    def full_state(self, state, exogenous):
         """X_{t_j} = (alpha, Q^B, Q^I) at t_j."""
-        return torch.stack([noise['alpha'][:, :-1], state['QB'][:, :-1], state['QI'][:, :-1]], -1)
+        return torch.stack([exogenous['alpha'][:, :-1], state['QB'][:, :-1], state['QI'][:, :-1]], -1)
 
-    def martingale_increments(self, noise):
+    def martingale_increments(self, exogenous):
         """(dB, dW) / sqrt(dt), the signal and price Brownian increments recovered from the paths."""
-        alpha, dz = noise['alpha'], noise['dz']
+        alpha, dz = exogenous['alpha'], exogenous['dz']
         dB = (alpha[:, 1:] - alpha[:, :-1] + self.kappa * alpha[:, :-1] * self.dt) / self.sigma_alpha
         dW = (dz - alpha[:, :-1] * self.dt) / self.sigma
         return torch.stack([dB, dW], -1) / math.sqrt(self.dt)
 
-    def exact(self, noise):
+    def exact(self, exogenous):
         """Exact equilibrium controls of the discretised game on the given paths, [M, 2, N]: trader, broker."""
         N, dt = self.N, self.dt
-        alpha = noise['alpha'].cpu().numpy().astype(np.float64)
-        dz = noise['dz'].cpu().numpy().astype(np.float64)
+        alpha = exogenous['alpha'].cpu().numpy().astype(np.float64)
+        dz = exogenous['dz'].cpu().numpy().astype(np.float64)
 
         # Trader: state x = (alpha, Q^I), x_{j+1} = A x_j + B eta_j + noise; feedback eta_j = L_j x_j.
         A = np.array([[1 - self.kappa * dt, 0.0], [0.0, 1.0]])

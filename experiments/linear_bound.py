@@ -27,11 +27,11 @@ n_paths = int(sys.argv[1]) if len(sys.argv) > 1 else 65536
 N, dt = game.N, game.dt
 half = n_paths // 2
 
-noise = game.sample(n_paths, 99)
-exact = game.exact(noise)                                       # [M, 2, N]
-alpha = np.stack([noise['alpha1'].numpy(), noise['alpha2'].numpy()], 1).astype(np.float64)
+exogenous = game.sample(n_paths, 99)
+exact = game.exact(exogenous)                                       # [M, 2, N]
+alpha = np.stack([exogenous['alpha1'].numpy(), exogenous['alpha2'].numpy()], 1).astype(np.float64)
 price_drift = alpha[:, 0, :-1] + alpha[:, 1, :-1]               # lam = 0: the price does not depend on the trades
-S = np.concatenate([np.zeros((n_paths, 1)), np.cumsum(price_drift * dt + game.sigma * noise['dWS'].numpy(), 1)], 1)
+S = np.concatenate([np.zeros((n_paths, 1)), np.cumsum(price_drift * dt + game.sigma * exogenous['dWS'].numpy(), 1)], 1)
 
 for i in (0, 1):
     q = np.concatenate([np.zeros((n_paths, 1)), np.cumsum(exact[:, i] * dt, 1)], 1)

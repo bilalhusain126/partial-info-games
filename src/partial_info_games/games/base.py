@@ -38,7 +38,7 @@ class Game(ABC):
     @abstractmethod
     def sample(self, n_paths: int, seed: int) -> dict:
         """
-        Simulates the exogenous noise.
+        Simulates the exogenous processes: everything random that the controls do not affect.
 
         Args:
             n_paths: Number of paths M.
@@ -50,23 +50,23 @@ class Game(ABC):
         """
 
     @abstractmethod
-    def initial_state(self, noise: dict) -> dict:
+    def initial_state(self, exogenous: dict) -> dict:
         """Returns the state paths on the time grid, as tensors [M, N + 1] initialised at t_0."""
 
     @abstractmethod
-    def step(self, state: dict, noise: dict, controls: dict, j: int):
+    def step(self, state: dict, exogenous: dict, controls: dict, j: int):
         """Writes the state at t_{j+1} from the state at t_j and the controls {player: [M]} at t_j."""
 
     @abstractmethod
-    def observe(self, i: int, state: dict, noise: dict, j: int) -> torch.Tensor:
+    def observe(self, i: int, state: dict, exogenous: dict, j: int) -> torch.Tensor:
         """Current observation O^i_{t_j} of player i, [M, observation_dims[i]]."""
 
     @abstractmethod
-    def increment(self, i: int, state: dict, noise: dict, j: int) -> torch.Tensor:
+    def increment(self, i: int, state: dict, exogenous: dict, j: int) -> torch.Tensor:
         """Observation increment of player i over [t_j, t_{j+1}], rescaled to order one, [M, increment_dims[i]]."""
 
     @abstractmethod
-    def cost(self, i: int, state: dict, noise: dict, controls: list) -> torch.Tensor:
+    def cost(self, i: int, state: dict, exogenous: dict, controls: list) -> torch.Tensor:
         """Realised cost of player i along each path (minus the reward of the note), [M]."""
 
     @abstractmethod
@@ -74,14 +74,14 @@ class Game(ABC):
         """Second derivative of the realised cost in player i's control at each t_j (2 a_i dt), [N]."""
 
     @abstractmethod
-    def full_state(self, state: dict, noise: dict) -> torch.Tensor:
+    def full_state(self, state: dict, exogenous: dict) -> torch.Tensor:
         """Full state X_{t_j} at each t_j, [M, N, full_dim]."""
 
     @abstractmethod
-    def martingale_increments(self, noise: dict) -> torch.Tensor:
+    def martingale_increments(self, exogenous: dict) -> torch.Tensor:
         """Increments over [t_j, t_{j+1}] with zero conditional mean given the full state at t_j, [M, N, noise_dim]."""
 
-    def exact(self, noise: dict) -> np.ndarray:
+    def exact(self, exogenous: dict) -> np.ndarray:
         """
         Exact equilibrium controls on the given paths, [M, n_players, N].
 
@@ -131,29 +131,29 @@ class TradingGame(Game):
     def signal_increment(self, alpha: torch.Tensor, j: int) -> torch.Tensor:
         """Rescaled increment of a signal path alpha [M, N + 1] over [t_j, t_{j+1}], [M]."""
 
-    def initial_state(self, noise):
-        M = noise['dWS'].shape[0]
+    def initial_state(self, exogenous):
+        M = exogenous['dWS'].shape[0]
         return dict(q1=torch.zeros(M, self.N + 1), q2=torch.zeros(M, self.N + 1),
                     S=torch.zeros(M, self.N + 1), mu=torch.zeros(M, self.N))
 
-    def step(self, state, noise, controls, j):
-        mu = noise['alpha1'][:, j] + noise['alpha2'][:, j] + self.lam * (controls[0] + controls[1])
+    def step(self, state, exogenous, controls, j):
+        mu = exogenous['alpha1'][:, j] + exogenous['alpha2'][:, j] + self.lam * (controls[0] + controls[1])
         state['mu'][:, j] = mu
         state['q1'][:, j + 1] = state['q1'][:, j] + controls[0] * self.dt
         state['q2'][:, j + 1] = state['q2'][:, j] + controls[1] * self.dt
-        state['S'][:, j + 1] = state['S'][:, j] + mu * self.dt + self.sigma * noise['dWS'][:, j]
+        state['S'][:, j + 1] = state['S'][:, j] + mu * self.dt + self.sigma * exogenous['dWS'][:, j]
 
-    def observe(self, i, state, noise, j):
+    def observe(self, i, state, exogenous, j):
         """O^i_{t_j} = (alpha^i, q^i, S) at t_j."""
-        return torch.stack([noise[f'alpha{i + 1}'][:, j], state[f'q{i + 1}'][:, j], state['S'][:, j]], -1)
+        return torch.stack([exogenous[f'alpha{i + 1}'][:, j], state[f'q{i + 1}'][:, j], state['S'][:, j]], -1)
 
-    def increment(self, i, state, noise, j):
+    def increment(self, i, state, exogenous, j):
         """Increments of (alpha^i, S) over [t_j, t_{j+1}], the price increment divided by sqrt(dt)."""
         S = state['S']
         price_increment = (S[:, j + 1] - S[:, j]) / math.sqrt(self.dt)
-        return torch.stack([self.signal_increment(noise[f'alpha{i + 1}'], j), price_increment], -1)
+        return torch.stack([self.signal_increment(exogenous[f'alpha{i + 1}'], j), price_increment], -1)
 
-    def cost(self, i, state, noise, controls):
+    def cost(self, i, state, exogenous, controls):
         """Minus the realised reward of trader i."""
         q = state[f'q{i + 1}']
         running = (q[:, :-1] * state['mu'] - self.a * controls[i] ** 2 - self.phi * q[:, :-1] ** 2).sum(1) * self.dt
@@ -163,7 +163,7 @@ class TradingGame(Game):
         """2 a dt."""
         return torch.full((self.N,), 2 * self.a * self.dt)
 
-    def full_state(self, state, noise):
+    def full_state(self, state, exogenous):
         """X_{t_j} = (alpha^1, alpha^2, q^1, q^2, S) at t_j."""
-        return torch.stack([noise['alpha1'][:, :-1], noise['alpha2'][:, :-1],
+        return torch.stack([exogenous['alpha1'][:, :-1], exogenous['alpha2'][:, :-1],
                             state['q1'][:, :-1], state['q2'][:, :-1], state['S'][:, :-1]], -1)

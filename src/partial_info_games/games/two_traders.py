@@ -53,28 +53,28 @@ class TwoTraders(TradingGame):
         """
         rng = np.random.default_rng(seed)
         dt, N = self.dt, self.N
-        noise = dict(alpha1_0=rng.standard_normal(n_paths) * math.sqrt(self.signal_variance),
+        exogenous = dict(alpha1_0=rng.standard_normal(n_paths) * math.sqrt(self.signal_variance),
                      alpha2_0=rng.standard_normal(n_paths) * math.sqrt(self.signal_variance),
                      dW1=rng.standard_normal((n_paths, N)) * math.sqrt(dt),
                      dW2=rng.standard_normal((n_paths, N)) * math.sqrt(dt),
                      dWS=rng.standard_normal((n_paths, N)) * math.sqrt(dt))
         for i in (1, 2):
             alpha = np.zeros((n_paths, N + 1))
-            alpha[:, 0] = noise[f'alpha{i}_0']
+            alpha[:, 0] = exogenous[f'alpha{i}_0']
             for j in range(N):
-                alpha[:, j + 1] = alpha[:, j] - self.kappa * alpha[:, j] * dt + self.sigma_alpha * noise[f'dW{i}'][:, j]
-            noise[f'alpha{i}'] = alpha
-        return {key: torch.tensor(value, dtype=torch.float32) for key, value in noise.items()}
+                alpha[:, j + 1] = alpha[:, j] - self.kappa * alpha[:, j] * dt + self.sigma_alpha * exogenous[f'dW{i}'][:, j]
+            exogenous[f'alpha{i}'] = alpha
+        return {key: torch.tensor(value, dtype=torch.float32) for key, value in exogenous.items()}
 
     def signal_increment(self, alpha, j):
         """(alpha_{t_{j+1}} - alpha_{t_j}) / sqrt(dt)."""
         return (alpha[:, j + 1] - alpha[:, j]) / math.sqrt(self.dt)
 
-    def martingale_increments(self, noise):
+    def martingale_increments(self, exogenous):
         """(dW^1, dW^2, dW^S) / sqrt(dt)."""
-        return torch.stack([noise['dW1'], noise['dW2'], noise['dWS']], -1) / math.sqrt(self.dt)
+        return torch.stack([exogenous['dW1'], exogenous['dW2'], exogenous['dWS']], -1) / math.sqrt(self.dt)
 
-    def exact(self, noise):
+    def exact(self, exogenous):
         """
         Exact equilibrium at lam = 0, [M, 2, N].
 
@@ -88,7 +88,7 @@ class TwoTraders(TradingGame):
             NotImplementedError: If lam != 0.
         """
         if self.lam != 0.0:
-            return super().exact(noise)
+            return super().exact(exogenous)
         dt, N, kappa = self.dt, self.N, self.kappa
 
         # Kalman gains of the other signal, from its stationary prior.
@@ -98,7 +98,7 @@ class TwoTraders(TradingGame):
             filter_gain[j] = variance / (variance * dt + self.sigma ** 2)
             variance = (1 - kappa * dt) ** 2 * (variance - filter_gain[j] * dt * variance) + self.sigma_alpha ** 2 * dt
 
-        # Backward Riccati recursion for the state z = (q, alpha^i, alphahat^j): z_{j+1} = F z_j + G nu_j + noise,
+        # Backward Riccati recursion for the state z = (q, alpha^i, alphahat^j): z_{j+1} = F z_j + G nu_j + exogenous,
         # with running cost (z' Q z + a nu^2) dt and terminal cost psi q^2.
         F = np.diag([1.0, 1 - kappa * dt, 1 - kappa * dt])
         G = np.array([dt, 0.0, 0.0])
@@ -111,8 +111,8 @@ class TwoTraders(TradingGame):
             P = Q * dt + F.T @ P @ F - np.outer(F.T @ P @ G, G @ P @ F) * inverse
 
         # Controls along the paths.
-        alpha = np.stack([noise['alpha1'].cpu().numpy(), noise['alpha2'].cpu().numpy()], 1).astype(np.float64)
-        dWS = noise['dWS'].cpu().numpy().astype(np.float64)
+        alpha = np.stack([exogenous['alpha1'].cpu().numpy(), exogenous['alpha2'].cpu().numpy()], 1).astype(np.float64)
+        dWS = exogenous['dWS'].cpu().numpy().astype(np.float64)
         M = alpha.shape[0]
         q = np.zeros((M, 2))
         estimate = np.zeros((M, 2))                # estimate[:, i] = alphahat^j of trader i
@@ -133,7 +133,7 @@ class LinearStrategies:
         nu^i_{t_j} = sum_{k <= j} ( beta^i[j, k, 0] alpha^i_{t_k} + beta^i[j, k, 1] S_{t_k} ).
 
     The shocks of the discretised game form a vector e in R^K, K = 2 + 3N: the two initial signals and,
-    at each step, the increments of the two signal noises and of the price noise, at unit variance. Every
+    at each step, the increments of the two signal noises and of the price exogenous, at unit variance. Every
     process is linear in e and is represented by its loading vector, so E[x y] = x . y and the expected
     cost of each trader is computed exactly, without simulation. Each best response is computed by L-BFGS
     over the trader's coefficients, and the equilibrium by a damped best-response iteration.
@@ -267,21 +267,21 @@ class LinearStrategies:
                 return beta
         raise RuntimeError(f'best-response iteration not converged after {iterations} iterations (change {change:.1e})')
 
-    def controls(self, beta, noise: dict) -> np.ndarray:
+    def controls(self, beta, exogenous: dict) -> np.ndarray:
         """
         Controls of the linear strategies along simulated paths.
 
         Args:
             beta: Coefficients [2, N, N, 2].
-            noise: Noise of the paths (TwoTraders.sample).
+            exogenous: Noise of the paths (TwoTraders.sample).
 
         Returns:
             Controls [M, 2, N].
         """
         game = self.game
         N, dt = game.N, game.dt
-        to_numpy = lambda key: noise[key].cpu().numpy().astype(np.float64)
-        M = noise['dWS'].shape[0]
+        to_numpy = lambda key: exogenous[key].cpu().numpy().astype(np.float64)
+        M = exogenous['dWS'].shape[0]
         shocks = np.zeros((M, self.K))                   # the shock vector e of each path
         shocks[:, 0] = to_numpy('alpha1_0') / game.signal_variance ** 0.5
         shocks[:, 1] = to_numpy('alpha2_0') / game.signal_variance ** 0.5
