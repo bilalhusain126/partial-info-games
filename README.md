@@ -20,8 +20,21 @@ $$
 u^{(k+1)} = (1 - \rho) \, u^{(k)} + \rho \, \Psi\big(u^{(k)}\big).
 $$
 
-Each conditional expectation is approximated by a recurrent network of the player's own observed path, fitted
-by minimizing a mean squared error over simulated paths. No filter is computed.
+Each conditional expectation is approximated by a network of the player's own observed path, fitted by minimizing
+a mean squared error over simulated paths. No filter is computed. A GRU takes the increments of the observations,
+rescaled by $\sqrt{\Delta t}$, as input and returns a summary $h_j$ of the observed path up to $t_j$. A feedforward
+network maps $(t_j, O^i_{t_j}, h_j)$ to $u^i_{t_j}$.
+
+At each iteration, the game is simulated once with the controls of all players fixed. The target of player $i$ is
+
+$$
+\frac{\Lambda^i_{t_j}}{2 a_i} = u^i_{t_j} + \frac{G^i_j}{2 a_i \, \Delta t},
+$$
+
+where $G^i_j$ is the derivative of the realised reward of player $i$ with respect to $u^i_{t_j}$, computed by
+automatic differentiation. The next iterate of player $i$ minimizes a mean squared error against
+$(1 - \rho) \, u^i + \rho \, \Lambda^i / (2 a_i)$. A martingale control variate is subtracted from the target to
+reduce its variance. The validation controls are averaged over the later iterations.
 
 ## Examples
 
@@ -40,7 +53,8 @@ Each example has an exact solution of the discretised game, used only to validat
 src/partial_info_games/
     solver.py             damped Picard iteration, first order condition check
     control.py            the network of each player
-    utils.py              device, validation paths, errors, iterate averaging
+    control_variate.py    martingale control variate of the targets
+    utils.py              device, validation paths, errors
     plotting.py           plot style and figures
     games/                the game interface (base.py) and one module per game with its exact solution
 notebooks/                one notebook per example, and the results of the study
