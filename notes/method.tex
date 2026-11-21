@@ -195,7 +195,7 @@ For $n = 1$, Algorithm \ref{alg:main} solves a single-agent problem under partia
   \item Each player has an objective $J^i$ to maximize over admissible controls. $J^i$ depends on the state and on the controls of both players, and thus on the observations of both players.
   \item To characterize the equilibrium, we perturb the control of player 1, $u^1 + \varepsilon w$, and keep the other player fixed. The deviation is hypothetical. It does not happen in the game.
   \item The equilibrium requires that no perturbation raises $J^1$, and likewise for player 2. Locally, the G\^ateaux derivative of $J^1$ is zero in every direction $w$.
-  \item Since $J^i$ is concave in the own control, a zero G\^ateaux derivative implies that the control is optimal. Without concavity, it gives only a stationary point.
+  \item Since $J^i$ is concave in $u^i$, with the control of the other player held fixed, a zero G\^ateaux derivative implies that the control is optimal. Without concavity, it gives only a stationary point.
   \item This gives the first order condition, which characterizes the optimal control implicitly.
   \item The perturbation changes the state. Depending on the problem, it therefore changes the observations of the other player. In the trading game, this happens when $\lambda > 0$, because trades move the price.
   \item What ``keep the other player fixed'' means defines the equilibrium concept.
