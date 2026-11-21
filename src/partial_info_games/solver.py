@@ -123,11 +123,11 @@ class Solver:
                     if i in fixed:
                         u[i] = fixed[i][:, j]
                     else:
-                        memory = None if control.gru is None else hidden[i][0]
-                        u[i] = control(self.t[j].expand(M, 1), game.observe(i, state, exogenous, j), memory).detach()
+                        summary = None if control.gru is None else hidden[i][0]
+                        u[i] = control(self.t[j].expand(M, 1), game.observe(i, state, exogenous, j), summary).detach()
                     controls[i].append(u[i])
                 game.step(state, exogenous, u, j)
-                # Feed the observation increments over [t_j, t_{j+1}] to the GRUs.
+                # Update each summary with the observation increment over [t_j, t_{j+1}].
                 for i, control in enumerate(self.controls):
                     if control.gru is not None and i not in fixed:
                         increment = game.increment(i, state, exogenous, j)
@@ -216,12 +216,12 @@ class Solver:
             loss = 0.0
             for i in players:
                 control = self.controls[i]
-                memory = control.memory(increments[i][index]) if control.gru is not None else None
+                summary = control.summaries(increments[i][index]) if control.gru is not None else None
                 target = targets[i][index]
                 if self.control_variate:
                     martingale = (self.zetas[i](full_state[index]) * dW[index]).sum(-1) @ self.cv_kernels[i]
                     target = target - damping * martingale
-                prediction = control(t[index], observations[i][index], memory)
+                prediction = control(t[index], observations[i][index], summary)
                 loss = loss + ((prediction - target) ** 2).mean()
             optimizer.zero_grad()
             loss.backward()
