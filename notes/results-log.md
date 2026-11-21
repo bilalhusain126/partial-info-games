@@ -173,3 +173,10 @@ Seeds at 64k (mean +- spread over seeds 0-2, player 1 / player 2): two traders l
 - The broker-trader game: the broker observes the price increments only (before: also the Kalman estimate of the signal and the transient impact); the trader observes (alpha, Q^I) (before: also Q^B, Y and the Kalman estimate). The broker numbers above are not comparable with the rewrite.
 - The Bergault and Sanchez-Betancourt game and the strong-coupling Wu-Jaimungal runs were dropped; their scripts are at the last commit before the rewrite.
 - The closed-loop solvers (gradient play, closed-loop Picard), the closed-loop references and the linear-strategy baseline were removed from the repository to keep it to the open-loop method and the benchmarks; they are at commit cc97a64.
+
+## 2026-11-21: broker-trader horizon
+
+- The broker-trader default horizon changed from T = 0.3, N = 40 to T = 1, N = 50, matching the other games. T = 0.3 came from the first prototype; the short-horizon restriction of Wu and Jaimungal applies only to h > 0.
+- Fraction of Var(α) explained by the broker's Kalman filter (current parameters): 29% at t = 0.3, 35% at t = 0.5, 38% at t = 1 (steady state). A longer horizon makes the broker's targets only slightly less noisy.
+- First order condition check of the exact reference (experiments/checks.py, 20000 paths): residual 0.029 (trader), 0.078 (broker) at T = 1, against 0.013, 0.075 at T = 0.3. Both at the sampling level of the check.
+- Cluster runs of batch 2026-11-21 (stages budget, seeds, control_variate, damping) used T = 0.3.

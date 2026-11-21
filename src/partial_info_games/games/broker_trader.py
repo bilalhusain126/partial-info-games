@@ -41,8 +41,8 @@ class BrokerTrader(Game):
     kappa: float = 1.0        # signal mean reversion
     sigma_alpha: float = 1.0  # signal volatility
     sigma: float = 0.5        # price volatility
-    T: float = 0.3
-    N: int = 40
+    T: float = 1.0
+    N: int = 50
 
     n_players = 2
     observation_dims = [3, 1]     # trader: (α, Qᴵ, z); broker: z
