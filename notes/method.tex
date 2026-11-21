@@ -33,7 +33,7 @@ In this section, we present a method for stochastic differential games in which 
 
 We work on a filtered probability space $(\Omega, \G, \mathbb{G} = (\G_t)_{t \in [0,T]}, \pr)$, where $T > 0$ is a fixed and finite horizon. The filtration $\mathbb{G}$ supports a $d$-dimensional Brownian motion $W$.
 
-There are $n$ players. Player $i$ chooses a control $u^i = (u^i_t)_{t \in [0,T]}$, $u^i_t \in \R^{d_i}$. We denote by $u = (u^1, \dots, u^n)$ the controls of all players, and by $u^{-i}$ the controls of the players other than $i$. We collect the processes of the game in a vector $X = (X_t)_{t \in [0,T]}$, $X_t \in \R^{d_X}$, called the state. It satisfies
+There are $n$ players. Player $i$ chooses a control $u^i = (u^i_t)_{t \in [0,T]}$, $u^i_t \in \R^{d_i}$. We denote by $u = (u^1, \dots, u^n)$ the controls of all players, and by $u^{-i}$ the controls of the players other than $i$. The state $X = (X_t)_{t \in [0,T]}$, $X_t \in \R^{d_X}$, collects the processes of the game and satisfies
 \begin{equation}
   \label{eq:state}
   dX_t = b(t, X_t, u_t) \, dt + \sigma(t, X_t) \, dW_t , \qquad X_0 = x_0 .
