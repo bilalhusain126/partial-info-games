@@ -135,8 +135,8 @@ if __name__ == '__main__':
         for k in range(N):
             F = np.concatenate([np.ones((len(X0), 1)), ZH[:, k, :2]], -1); fi[:, k] = F @ np.linalg.lstsq(F, bi[:, k], rcond=1e-8)[0]
         print(f'{rel(fi, ui_ex):.4f}'); sys.exit()
-    M = FCModel(); S = Solver(M, hid=32, rho=float(os.environ.get('RHO_DAMP', '0.7')), lr=1e-3, batch=int(os.environ.get('BATCH', '1024')), steps=int(os.environ.get('STEPS', '1500')),
-                              m_paths=int(os.environ.get('M_PATHS', '8192')), m_val=2048)
+    M = FCModel(); S = Solver(M, hid=int(os.environ.get('HID', '32')), rho=float(os.environ.get('RHO_DAMP', '0.7')), lr=1e-3, batch=int(os.environ.get('BATCH', '1024')), steps=int(os.environ.get('STEPS', '1500')),
+                              m_paths=int(os.environ.get('M_PATHS', '8192')), m_val=2048, seed=int(os.environ.get('SEED', '0')))
     u0_ex, ui_ex, *_ = reference_paths(ref, {k: v.cpu().numpy().astype(np.float64) for k, v in S.exo_v.items()})
     from npg import exploitability, foc_residual, gateaux_check
     vstate, vctrl, hist = S.run(int(sys.argv[1]) if len(sys.argv) > 1 else 10, ref=[torch.tensor(u0_ex, dtype=torch.float32), torch.tensor(ui_ex, dtype=torch.float32)])

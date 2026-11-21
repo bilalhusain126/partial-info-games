@@ -105,7 +105,7 @@ class PMModel:
 
 if __name__ == '__main__':
     ITERS = int(sys.argv[1]) if len(sys.argv) > 1 else 10
-    M = PMModel(); S = Solver(M, hid=32, rho=float(os.environ.get('RHO_DAMP', '0.6')), batch=int(os.environ.get('BATCH', '1024')), steps=int(os.environ.get('STEPS', '1000')),
+    M = PMModel(); S = Solver(M, hid=int(os.environ.get('HID', '32')), rho=float(os.environ.get('RHO_DAMP', '0.6')), batch=int(os.environ.get('BATCH', '1024')), steps=int(os.environ.get('STEPS', '1000')),
                               m_paths=int(os.environ.get('M_PATHS', '8192')), m_val=2048, seed=int(os.environ.get('SEED', '0')))
     ref = None
     if LAM == 0.0:
