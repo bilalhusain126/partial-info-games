@@ -113,8 +113,8 @@ class MajorMinor(Game):
     sigma1: float = 0.3
     delta: float = 0.5                 # discount rate
     initial_variance: float = 1.0    # variance of X⁰_0 and X¹_0
-    T: float = 5.0
-    N: int = 100
+    T: float = 1.0
+    N: int = 50
 
     n_players = 2
     observation_dims = [1, 2]        # O⁰, O¹

@@ -136,7 +136,7 @@ To compute \eqref{eq:picard} numerically, at iteration $k$ we simulate $M$ new p
   \label{eq:loss}
   \mathcal{L}^i(\theta^i) = \frac{1}{M N} \sum_{m=1}^{M} \sum_{j=0}^{N-1} \Big| \mathcal{N}^i\big(t_j, O^{i,(m)}_{[0, t_j]}; \theta^i\big) - (1 - \rho) \, u^{i,(m,k)}_{t_j} - \frac{\rho}{2 a_i} \Lambda^{i,(m,k)}_j \Big|^2 .
 \end{equation}
-New paths are drawn at each iteration, so that the regression errors of different iterations are independent. At each iteration, we initialize each network with the parameters of the previous iterate. After $K$ iterations, we average the controls of the last iterates.
+New paths are drawn at each iteration, so that the regression errors of different iterations are independent. At each iteration, we initialize each network with the parameters of the previous iterate. After $K$ iterations, the networks $\mathcal{N}^i(\cdot\,; \theta^{i,(K)})$ approximate the equilibrium controls.
 
 The network of player $i$ takes only $O^i$ as input. The unobserved processes, including the other players' observations, enter only through the target $\Lambda^i$. No filter, and no estimate of the other players' estimates, is computed explicitly.
 
@@ -158,7 +158,7 @@ The computational procedure is as follows.
             \item \textit{Convergence check:} Simulate validation paths with the new networks and compute the root mean square change of the controls between iterations $k$ and $k + 1$. Stop if it falls below a tolerance $\epsilon_{\mathrm{tol}}$.
         \end{enumerate}
 
-    \item \textit{Return:} Return the networks $\mathcal{N}^i(\cdot\,; \theta^{i,(K)})$, or the average of the controls of the last iterates along the validation paths.
+    \item \textit{Return:} Return the networks $\mathcal{N}^i(\cdot\,; \theta^{i,(K)})$.
 \end{enumerate}
 
 \begin{algorithm}[H]
@@ -180,7 +180,7 @@ The computational procedure is as follows.
         \State set $\theta^{i,(k+1)}$ to the result
       \EndFor
     \EndFor
-    \State average the controls of the last iterates
+    \State \Return $\mathcal{N}^i(\cdot\,; \theta^{i,(K)})$, $i = 1, \dots, n$
   \end{algorithmic}
 \end{algorithm}
 

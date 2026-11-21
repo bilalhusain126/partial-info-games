@@ -43,7 +43,6 @@ def settings(config: dict) -> dict:
                steps=3 * config['paths'] // 50,                # 120 passes over the paths per iteration
                control_variate=True, residual=False, iterations=16)
     run.update(config)
-    run['average_from'] = 6 if run['iterations'] <= 16 else run['iterations'] // 2
     return run
 
 
@@ -85,7 +84,7 @@ def main(config: dict):
     solver = Solver(game, width=run['width'], damping=run['damping'], steps=run['steps'], batch=run['batch'],
                     n_paths=run['paths'], control_variate=run['control_variate'], seed=run['seed'])
     target = reference(run, game, solver.validation)
-    controls, history = solver.run(run['iterations'], run['average_from'], reference=target)
+    controls, history = solver.run(run['iterations'], reference=target)
 
     result = dict(settings=run, seconds=time.time() - start, history=history,
                   mean_abs_control=[float(c.abs().mean()) for c in controls])

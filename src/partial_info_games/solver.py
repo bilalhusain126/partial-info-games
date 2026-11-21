@@ -45,8 +45,7 @@ class Solver:
                (1 - ρ) u^{i,(k)} + (ρ / 2 aᵢ) Λⁱ
            by minimizing the mean squared error over the paths, with the player's own observed path as the
            only input (Solver.fit).
-    The validation controls are averaged over the later iterations (iterate averaging), which reduces the
-    fluctuation from one iteration to the next caused by the regression noise.
+    The networks after the last iteration approximate the equilibrium controls.
     """
 
     def __init__(self, game, width: int = 32, damping: float = 0.6, steps: int = 1000, batch: int = 1000,
@@ -218,22 +217,21 @@ class Solver:
     # The iteration
     # --------------------------------------------------------------------------
 
-    def run(self, iterations: int, average_from: int = 4, reference: list = None, verbose: bool = True):
+    def run(self, iterations: int, reference: list = None, verbose: bool = True):
         """
         Runs the damped Picard iteration.
 
         Args:
             iterations: Number K of iterations.
-            average_from: First iteration included in the average of the validation controls. Default 4.
             reference: Reference validation controls, list of [M, N] tensors. Default none.
             verbose: Whether to print, at each iteration, the regression loss and, with a reference, the relative
-                L2 error of the current and of the averaged controls. Default True.
+                L2 error of the controls. Default True.
 
         Returns:
-            controls: The averaged validation controls, list of [M, N] tensors.
+            controls: The validation controls of the last iterate, list of [M, N] tensors.
             history: Per iteration, the relative L2 error of each player's current controls against reference.
         """
-        average, count, history = None, 0, []
+        history = []
         start = time.time()
         for k in range(iterations):
             training = self.game.sample(self.n_paths, 1000 * (self.seed + 1) + k)
@@ -242,18 +240,13 @@ class Solver:
             damped = [(1 - self.damping) * u + self.damping * target for u, target in zip(controls, targets)]
             loss = self.fit(training, state, damped, self.damping)
             _, validation = self.simulate(self.validation)
-            if k >= average_from:
-                count += 1
-                average = validation if average is None else [a + (v - a) / count for a, v in zip(average, validation)]
             message = f'iteration {k:2d}  loss {loss:.2e}'
             if reference is not None:
                 history.append([relative_l2(v, r) for v, r in zip(validation, reference)])
                 message += '  error ' + ' '.join(f'{e:.3f}' for e in history[-1])
-                if average is not None:
-                    message += '  averaged ' + ' '.join(f'{relative_l2(a, r):.3f}' for a, r in zip(average, reference))
             if verbose:
                 print(message + f'  ({time.time() - start:.0f}s)', flush=True)
-        return (average or validation), history
+        return validation, history
 
 
 def first_order_residual(solver: Solver, i: int, n_paths: int = None) -> float:

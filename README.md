@@ -34,7 +34,7 @@ $$
 where $G^i_j$ is the derivative of the realised reward of player $i$ with respect to $u^i_{t_j}$, computed by
 automatic differentiation. The next iterate of player $i$ minimizes a mean squared error against
 $(1 - \rho) \, u^i + \rho \, \Lambda^i / (2 a_i)$. A martingale control variate is subtracted from the target to
-reduce its variance. The validation controls are averaged over the later iterations.
+reduce its variance.
 
 ## Examples
 

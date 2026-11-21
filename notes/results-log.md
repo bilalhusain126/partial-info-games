@@ -189,3 +189,5 @@ Seeds at 64k (mean +- spread over seeds 0-2, player 1 / player 2): two traders l
 - Two traders λ = 1.5: 2.8 to 3.5% over 3 seeds; λ = 2: 3.4, 3.9, 6.1%.
 - Per-iteration histories: the error reaches its minimum early and then drifts upward (broker at 100k: 6.2% at iteration 2, 26% at iteration 15; two traders λ = 1 at 100k: 2.3% at iteration 5, 4.4/5.3% at iteration 15). Diagnosis: the warm-started networks are trained on the same paths at every iteration and fit their noise.
 - Change: new training paths at every iteration (Solver.run), seed 1000 (seed + 1) + k. The study is rerun with this change; the broker-trader game now has T = 1, N = 50, σ = 0.5.
+- Iterate averaging removed: Solver.run returns the controls of the last iterate, i.e. the trained networks. Averaging the network weights over the last iterates (Polyak averaging) is an option for later.
+- Major-minor default horizon changed from T = 5, N = 100 to T = 1, N = 50, so that every game uses T = 1, N = 50. First order condition check of its exact reference at 20000 paths: 0.023 (major), 0.032 (minor).
