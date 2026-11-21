@@ -31,8 +31,8 @@ Each example has an exact solution of the discretised game, used only to validat
   price that both traders move. The exact equilibrium is computed among strategies linear in the observed
   path, which contain it in this Gaussian game.
 * **Two traders with private Markov-chain signals.** The filter is nonlinear. Exact solution at $\lambda = 0$.
-* **Broker and informed trader**, without transient impact.
-* **Major and minor player**, both partially observed.
+* **Broker and informed trader**, without transient impact. The broker's information is contained in the trader's.
+* **Major and minor player**, both partially observed; neither player's information contains the other's.
 
 ## Layout
 
@@ -64,5 +64,5 @@ cd experiments/cluster
 ./submit.sh budget
 ```
 
-The stages are `budget`, `seeds`, `control_variate`, `width`, `damping` and `coupling`.
+The stages are `budget`, `seeds`, `control_variate`, `damping` and `coupling`.
 `notebooks/results.ipynb` reads the saved runs from `experiments/results/`.

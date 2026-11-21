@@ -111,8 +111,7 @@ class MajorMinor(Game):
     N: int = 100
 
     n_players = 2
-    observation_dims = [0, 0]        # both players act on their observation increments only
-    increment_dims = [1, 2]          # dy^0, dy^1
+    observation_dims = [1, 2]        # y^0, y^1
     full_dim = 2
     noise_dim = 2
 
@@ -145,7 +144,8 @@ class MajorMinor(Game):
 
     def initial_state(self, exogenous):
         M = exogenous['dw0'].shape[0]
-        state = dict(x0=torch.zeros(M, self.N + 1), x1=torch.zeros(M, self.N + 1))
+        state = dict(x0=torch.zeros(M, self.N + 1), x1=torch.zeros(M, self.N + 1),
+                     y0=torch.zeros(M, self.N + 1, 1), y1=torch.zeros(M, self.N + 1, 2))
         state['x0'][:, 0] = exogenous['x0_0']
         state['x1'][:, 0] = exogenous['x1_0']
         return state
@@ -154,17 +154,12 @@ class MajorMinor(Game):
         x0, x1, dt = state['x0'][:, j], state['x1'][:, j], self.dt
         state['x0'][:, j + 1] = x0 + (self.A0 * x0 + self.B0 * controls[0]) * dt + self.D0 * exogenous['dw0'][:, j]
         state['x1'][:, j + 1] = x1 + (self.A1 * x1 + self.G * x0 + self.B1 * controls[1]) * dt + self.D1 * exogenous['dw1'][:, j]
+        state['y0'][:, j + 1] = state['y0'][:, j] + (self.L0 * x0 * dt + self.s0 * exogenous['dv0'][:, j])[:, None]
+        state['y1'][:, j + 1] = state['y1'][:, j] + torch.stack([self.L1 * x1, self.L2 * x0], -1) * dt + self.s1 * exogenous['dv1'][:, j]
 
     def observe(self, i, state, exogenous, j):
-        """Empty: each player acts on its observation increments through its GRU."""
-        return torch.zeros(exogenous['dw0'].shape[0], 0)
-
-    def increment(self, i, state, exogenous, j):
-        """dy^i over [t_j, t_{j+1}], divided by sqrt(dt)."""
-        x0, x1, dt = state['x0'][:, j], state['x1'][:, j], self.dt
-        if i == 0:
-            return ((self.L0 * x0 * dt + self.s0 * exogenous['dv0'][:, j]) / math.sqrt(dt))[:, None]
-        return (torch.stack([self.L1 * x1, self.L2 * x0], -1) * dt + self.s1 * exogenous['dv1'][:, j]) / math.sqrt(dt)
+        """y^i at t_j."""
+        return state[f'y{i}'][:, j]
 
     def discounting(self):
         """Discount factors exp(-rho t_j), [N]."""

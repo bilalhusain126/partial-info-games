@@ -7,10 +7,10 @@
 set -e
 
 ACCOUNT="def-ankush"        # the allocation account; list with: sshare -U $USER
-declare -A TIME=([budget]=5:00:00 [seeds]=4:00:00 [control_variate]=3:00:00 [width]=4:00:00 [damping]=4:00:00 [coupling]=3:00:00)   # per run
+declare -A TIME=([budget]=5:00:00 [seeds]=4:00:00 [control_variate]=3:00:00 [damping]=4:00:00 [coupling]=3:00:00)   # per run
 
 STAGE=$1
-[ -n "${TIME[$STAGE]}" ] || { echo "stage must be budget, seeds, control_variate, width, damping or coupling"; exit 1; }
+[ -n "${TIME[$STAGE]}" ] || { echo "stage must be budget, seeds, control_variate, damping or coupling"; exit 1; }
 for lam in 1.0 1.5 2.0; do
     [ -f "../references/two_traders_lam$lam.npz" ] || { echo "missing ../references/two_traders_lam$lam.npz: run references.py first"; exit 1; }
 done

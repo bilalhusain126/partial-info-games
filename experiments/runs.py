@@ -4,9 +4,7 @@ Stages:
     budget           the cases with an exact reference at 25000, 50000 and 100000 paths, seed 0
     seeds            the same cases at 50000 paths, seeds 1 and 2; the Markov-chain game at lam = 1, seeds 0-2, with
                      the first order condition residuals
-    control_variate  the cases with an exact reference at 25000 paths without the control variate; the Markov-chain
-                     game with the price noise only
-    width            two traders at lam = 1 and the Markov-chain game at lam = 0, GRU width 64, 50000 paths
+    control_variate  the cases with an exact reference at 25000 paths without the control variate
     damping          the broker-trader game with damping 0.3 and 0.15
     coupling         two traders at lam = 1.5 and 2 (stronger coupling), three seeds
 
@@ -37,9 +35,7 @@ STAGES = dict(
     budget=lambda: [command(**case, paths=paths) for case in CASES for paths in (25000, 50000, 100000)],
     seeds=lambda: [command(**case, paths=50000, seed=seed) for case in CASES for seed in (1, 2)]
                   + [command(game='markov_traders', lam=1.0, paths=50000, seed=seed, residual=True) for seed in (0, 1, 2)],
-    control_variate=lambda: [command(**case, paths=25000, no_control_variate=True) for case in CASES]
-                            + [command(game='markov_traders', lam=0.0, paths=25000, no_jump_variate=True)],
-    width=lambda: [command(game='two_traders', lam=1.0, paths=50000, width=64), command(game='markov_traders', lam=0.0, paths=50000, width=64)],
+    control_variate=lambda: [command(**case, paths=25000, no_control_variate=True) for case in CASES],
     damping=lambda: [command(game='broker_trader', paths=paths, damping=damping, iterations=iterations)
                      for paths, damping, iterations in ((25000, 0.3, 30), (25000, 0.15, 40), (50000, 0.3, 30))],
     coupling=lambda: [command(game='two_traders', lam=lam, paths=25000, seed=seed) for lam in (1.5, 2.0) for seed in (0, 1, 2)],

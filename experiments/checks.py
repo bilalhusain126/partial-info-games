@@ -41,23 +41,22 @@ def residual(game, exact_controls) -> list:
     Returns:
         Per player, the relative L2 size of the projection of target - control on the player's information.
     """
-    solver = Solver(game, steps=0, n_paths=8)          # used only for simulate and targets
+    solver = Solver(game, steps=0, n_paths=8, control_variate=False)       # used only for simulate and targets
     exogenous = game.sample(n_paths, 31)
     exact = torch.tensor(exact_controls(exogenous), dtype=torch.float32)
     controls = [exact[:, i] for i in range(game.n_players)]
-    state, _, _ = solver.simulate(exogenous, fixed=dict(enumerate(controls)))
+    state, _ = solver.simulate(exogenous, fixed=dict(enumerate(controls)))
     targets = solver.targets(exogenous, controls)
     residuals = []
     for i in range(game.n_players):
-        past = []
+        observations = [game.observe(i, state, exogenous, j) for j in range(game.N + 1)]
         projection = torch.zeros_like(controls[i])
         for j in range(game.N):
-            features = torch.cat([torch.ones(n_paths, 1), game.observe(i, state, exogenous, j)] + past, 1).double()
+            increments = [observations[k + 1] - observations[k] for k in range(j)]
+            features = torch.cat([torch.ones(n_paths, 1), observations[j]] + increments, 1).double()
             difference = (targets[i][:, j] - controls[i][:, j]).double()
             coefficients = torch.linalg.lstsq(features, difference[:, None], rcond=1e-8, driver='gelsd').solution
             projection[:, j] = (features @ coefficients)[:, 0].float()
-            if game.increment_dims[i] > 0:
-                past.append(game.increment(i, state, exogenous, j))
         residuals.append(float(projection.norm() / controls[i].norm()))
     return residuals
 

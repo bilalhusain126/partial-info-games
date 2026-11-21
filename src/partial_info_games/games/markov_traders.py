@@ -28,12 +28,8 @@ class MarkovTraders(TradingGame):
 
     kappa: float = 1.0          # switching rate of each chain
     amplitude: float = 1.0      # states of each chain: -amplitude, +amplitude
-    jump_variate: bool = True   # include the compensated chain increments in the control variate
 
-    @property
-    def noise_dim(self) -> int:
-        """Number of martingale increments: the price exogenous, and the two compensated chain increments."""
-        return 3 if self.jump_variate else 1
+    noise_dim = 3               # the control variate uses dW^S and the two compensated chain increments
 
     @property
     def decay(self) -> float:
@@ -62,20 +58,15 @@ class MarkovTraders(TradingGame):
             exogenous[f'alpha{i}'] = self.amplitude * (2 * state - 1).astype(float)
         return {key: torch.tensor(value, dtype=torch.float32) for key, value in exogenous.items()}
 
-    def signal_increment(self, alpha, j):
-        """alpha_{t_{j+1}} - alpha_{t_j} (the jumps are already of order one)."""
-        return alpha[:, j + 1] - alpha[:, j]
-
     def martingale_increments(self, exogenous):
         """
-        dW^S / sqrt(dt) and, with jump_variate, the compensated chain increments
-        (alpha^i_{t_{j+1}} - decay alpha^i_{t_j}) / sqrt(dt), which have zero mean given alpha^i_{t_j}.
+        dW^S / sqrt(dt) and the compensated chain increments (alpha^i_{t_{j+1}} - decay alpha^i_{t_j}) / sqrt(dt),
+        which have zero mean given alpha^i_{t_j}.
         """
         increments = [exogenous['dWS'] / math.sqrt(self.dt)]
-        if self.jump_variate:
-            for i in (1, 2):
-                alpha = exogenous[f'alpha{i}']
-                increments.append((alpha[:, 1:] - self.decay * alpha[:, :-1]) / math.sqrt(self.dt))
+        for i in (1, 2):
+            alpha = exogenous[f'alpha{i}']
+            increments.append((alpha[:, 1:] - self.decay * alpha[:, :-1]) / math.sqrt(self.dt))
         return torch.stack(increments, -1)
 
     def exact(self, exogenous):
@@ -92,7 +83,7 @@ class MarkovTraders(TradingGame):
             NotImplementedError: If lam != 0.
         """
         if self.lam != 0.0:
-            return super().exact(exogenous)
+            raise NotImplementedError('exact solution at lam = 0 only')
         dt, N, a, r = self.dt, self.N, self.a, self.decay
 
         # Backward recursion for the feedback coefficients G_j, g_j.

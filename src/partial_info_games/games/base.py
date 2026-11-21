@@ -1,13 +1,11 @@
 """
 Abstract base class for the games, and the shared part of the two trading games.
 
-A game is defined on the grid t_j = j dt, j = 0, ..., N, with dt = T / N. It
-supplies the simulator of the state X, the observations O^i of each player, the
-realised reward R^i of each player, and the curvature 2 a_i dt of the reward in the player's own control,
-from which the solver builds the targets Lambda^i / (2 a_i).
+A game is defined on the grid t_j = j dt, j = 0, ..., N, with dt = T / N. It supplies the simulator of the state,
+the observations O^i of each player, the realised reward R^i of each player, and the curvature 2 a_i dt of the
+reward in the player's own control, from which the solver builds the targets Lambda^i / (2 a_i).
 """
 
-import math
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 
@@ -19,15 +17,14 @@ class Game(ABC):
     """
     Abstract base class representing a game of n players on the Euler--Maruyama grid.
 
-    Class attributes set by subclasses:
+    Attributes set by subclasses:
         n_players:         number of players
         T, N:              horizon and number of time steps
-        observation_dims:  per player, the dimension of the current observation O^i_t
-        increment_dims:    per player, the dimension of the observation increments (the GRU input)
-        full_dim:          dimension of the full state X_t (the input of the control variate)
-        noise_dim:         number of martingale increments per step (the factors of the control variate)
-        cv_decay:          per player, the decay per step of the reward sensitivity: Lambda^i_{t_j} depends on
-                           the increment at t_{j'} > t_j with weight proportional to decay^(j' - j)
+        observation_dims:  per player, the dimension of the observation O^i_t
+
+    For the control variate only (see control_variate.py), subclasses also set full_dim (the dimension of the
+    full state), noise_dim (the number of martingale increments per step) and cv_decay (per player, the decay per
+    step of the reward's sensitivity to the state), and implement full_state and martingale_increments.
     """
 
     @property
@@ -45,8 +42,7 @@ class Game(ABC):
             seed: Seed of the random number generator.
 
         Returns:
-            Dictionary of float32 tensors on the default device (Brownian increments [M, N], signal paths
-            [M, N + 1], ...).
+            Dictionary of float32 tensors on the default device.
         """
 
     @abstractmethod
@@ -59,11 +55,7 @@ class Game(ABC):
 
     @abstractmethod
     def observe(self, i: int, state: dict, exogenous: dict, j: int) -> torch.Tensor:
-        """Current observation O^i_{t_j} of player i, [M, observation_dims[i]]."""
-
-    @abstractmethod
-    def increment(self, i: int, state: dict, exogenous: dict, j: int) -> torch.Tensor:
-        """Observation increment of player i over [t_j, t_{j+1}], rescaled to order one, [M, increment_dims[i]]."""
+        """Observation O^i_{t_j} of player i, [M, observation_dims[i]]."""
 
     @abstractmethod
     def reward(self, i: int, state: dict, exogenous: dict, controls: list) -> torch.Tensor:
@@ -74,13 +66,6 @@ class Game(ABC):
         """Minus the second derivative of the realised reward in player i's control at each t_j (2 a_i dt), [N]."""
 
     @abstractmethod
-    def full_state(self, state: dict, exogenous: dict) -> torch.Tensor:
-        """Full state X_{t_j} at each t_j, [M, N, full_dim]."""
-
-    @abstractmethod
-    def martingale_increments(self, exogenous: dict) -> torch.Tensor:
-        """Increments over [t_j, t_{j+1}] with zero conditional mean given the full state at t_j, [M, N, noise_dim]."""
-
     def exact(self, exogenous: dict) -> np.ndarray:
         """
         Exact equilibrium controls on the given paths, [M, n_players, N].
@@ -88,7 +73,15 @@ class Game(ABC):
         Raises:
             NotImplementedError: If the game has no exact solution at its parameters.
         """
-        raise NotImplementedError(f'{type(self).__name__} has no exact solution at these parameters')
+
+    def full_state(self, state: dict, exogenous: dict) -> torch.Tensor:
+        """For the control variate: the full state at each t_j, [M, N, full_dim]."""
+        raise NotImplementedError(f'{type(self).__name__} does not support the control variate')
+
+    def martingale_increments(self, exogenous: dict) -> torch.Tensor:
+        """For the control variate: increments over [t_j, t_{j+1}] with zero conditional mean given the full
+        state at t_j, [M, N, noise_dim]."""
+        raise NotImplementedError(f'{type(self).__name__} does not support the control variate')
 
 
 # ==============================================================================
@@ -103,8 +96,8 @@ class TradingGame(Game):
     Dynamics:
         price:        dS_t = mu_t dt + sigma dW^S_t,   mu_t = alpha^1_t + alpha^2_t + lam (nu^1_t + nu^2_t)
         inventories:  dq^i_t = nu^i_t dt
-    The signals come from the subclass (Ornstein--Uhlenbeck in TwoTraders, Markov chains in MarkovTraders).
-    They are private: trader i observes O^i = (alpha^i, q^i, S).
+    The signals come from the subclass (Ornstein--Uhlenbeck in TwoTraders, Markov chains in MarkovTraders). They
+    are private: trader i observes O^i = (alpha^i, q^i, S).
 
     Reward of trader i:
         J^i = E[ int_0^T ( q^i_t mu_t - a (nu^i_t)^2 - phi (q^i_t)^2 ) dt - psi (q^i_T)^2 ].
@@ -123,13 +116,8 @@ class TradingGame(Game):
 
     n_players = 2
     observation_dims = [3, 3]
-    increment_dims = [2, 2]
     full_dim = 5
     cv_decay = [1.0, 1.0]
-
-    @abstractmethod
-    def signal_increment(self, alpha: torch.Tensor, j: int) -> torch.Tensor:
-        """Rescaled increment of a signal path alpha [M, N + 1] over [t_j, t_{j+1}], [M]."""
 
     def initial_state(self, exogenous):
         M = exogenous['dWS'].shape[0]
@@ -147,12 +135,6 @@ class TradingGame(Game):
         """O^i_{t_j} = (alpha^i, q^i, S) at t_j."""
         return torch.stack([exogenous[f'alpha{i + 1}'][:, j], state[f'q{i + 1}'][:, j], state['S'][:, j]], -1)
 
-    def increment(self, i, state, exogenous, j):
-        """Increments of (alpha^i, S) over [t_j, t_{j+1}], the price increment divided by sqrt(dt)."""
-        S = state['S']
-        price_increment = (S[:, j + 1] - S[:, j]) / math.sqrt(self.dt)
-        return torch.stack([self.signal_increment(exogenous[f'alpha{i + 1}'], j), price_increment], -1)
-
     def reward(self, i, state, exogenous, controls):
         """Realised reward of trader i."""
         q = state[f'q{i + 1}']
@@ -164,6 +146,6 @@ class TradingGame(Game):
         return torch.full((self.N,), 2 * self.a * self.dt)
 
     def full_state(self, state, exogenous):
-        """X_{t_j} = (alpha^1, alpha^2, q^1, q^2, S) at t_j."""
+        """(alpha^1, alpha^2, q^1, q^2, S) at each t_j."""
         return torch.stack([exogenous['alpha1'][:, :-1], exogenous['alpha2'][:, :-1],
                             state['q1'][:, :-1], state['q2'][:, :-1], state['S'][:, :-1]], -1)

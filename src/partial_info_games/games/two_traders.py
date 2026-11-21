@@ -66,10 +66,6 @@ class TwoTraders(TradingGame):
             exogenous[f'alpha{i}'] = alpha
         return {key: torch.tensor(value, dtype=torch.float32) for key, value in exogenous.items()}
 
-    def signal_increment(self, alpha, j):
-        """(alpha_{t_{j+1}} - alpha_{t_j}) / sqrt(dt)."""
-        return (alpha[:, j + 1] - alpha[:, j]) / math.sqrt(self.dt)
-
     def martingale_increments(self, exogenous):
         """(dW^1, dW^2, dW^S) / sqrt(dt)."""
         return torch.stack([exogenous['dW1'], exogenous['dW2'], exogenous['dWS']], -1) / math.sqrt(self.dt)
@@ -88,7 +84,7 @@ class TwoTraders(TradingGame):
             NotImplementedError: If lam != 0.
         """
         if self.lam != 0.0:
-            return super().exact(exogenous)
+            raise NotImplementedError('exact solution at lam = 0 only; see LinearStrategies for lam > 0')
         dt, N, kappa = self.dt, self.N, self.kappa
 
         # Kalman gains of the other signal, from its stationary prior.
@@ -133,7 +129,7 @@ class LinearStrategies:
         nu^i_{t_j} = sum_{k <= j} ( beta^i[j, k, 0] alpha^i_{t_k} + beta^i[j, k, 1] S_{t_k} ).
 
     The shocks of the discretised game form a vector e in R^K, K = 2 + 3N: the two initial signals and,
-    at each step, the increments of the two signal noises and of the price exogenous, at unit variance. Every
+    at each step, the increments of the two signal noises and of the price noise, at unit variance. Every
     process is linear in e and is represented by its loading vector, so E[x y] = x . y and the expected
     cost of each trader is computed exactly, without simulation. Each best response is computed by L-BFGS
     over the trader's coefficients, with the other trader's control held fixed as a process (the open

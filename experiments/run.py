@@ -41,7 +41,7 @@ def settings(config: dict) -> dict:
     """All settings of a run: the command-line settings with the defaults filled in."""
     run = dict(lam=None, seed=0, width=32, damping=DAMPING[config['game']], batch=2000,
                steps=3 * config['paths'] // 50,                # 120 passes over the paths per iteration
-               control_variate=True, jump_variate=True, residual=False, iterations=16)
+               control_variate=True, residual=False, iterations=16)
     run.update(config)
     run['average_from'] = 6 if run['iterations'] <= 16 else run['iterations'] // 2
     return run
@@ -52,7 +52,7 @@ def build_game(run: dict):
     if run['game'] == 'two_traders':
         return TwoTraders(lam=run['lam'])
     if run['game'] == 'markov_traders':
-        return MarkovTraders(lam=run['lam'], jump_variate=run['jump_variate'])
+        return MarkovTraders(lam=run['lam'])
     if run['game'] == 'broker_trader':
         return BrokerTrader()
     return MajorMinor()
@@ -91,8 +91,6 @@ def main(config: dict):
                   mean_abs_control=[float(c.abs().mean()) for c in controls])
     if target is not None:
         result['error'] = [relative_l2(c, r) for c, r in zip(controls, target)]
-        result['slope'] = [float(np.polyfit(r.cpu().numpy().ravel(), c.cpu().numpy().ravel(), 1)[0])
-                           for c, r in zip(controls, target)]
     if run['residual']:
         result['first_order_residual'] = [first_order_residual(solver, i) for i in range(game.n_players)]
     print(json.dumps({key: value for key, value in result.items() if key != 'history'}), flush=True)
@@ -110,10 +108,7 @@ if __name__ == '__main__':
     parser.add_argument('--seed', type=int, default=0, help='seed of the networks and training paths (default 0)')
     parser.add_argument('--damping', type=float, help='Picard damping (default per game)')
     parser.add_argument('--iterations', type=int, help='Picard iterations (default 16)')
-    parser.add_argument('--width', type=int, help='GRU width (default 32)')
     parser.add_argument('--no-control-variate', dest='control_variate', action='store_false', default=None)
-    parser.add_argument('--no-jump-variate', dest='jump_variate', action='store_false', default=None,
-                        help='Markov-chain game: control variate on the price noise only')
     parser.add_argument('--residual', action='store_true', default=None, help='compute the first order condition residuals')
     arguments = {key: value for key, value in vars(parser.parse_args()).items() if value is not None}
     if arguments['game'] in ('two_traders', 'markov_traders') and 'lam' not in arguments:

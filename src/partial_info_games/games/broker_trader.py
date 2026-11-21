@@ -6,8 +6,9 @@ Dynamics:
     trading signal:    dalpha_t = -kappa alpha_t dt + sigma_alpha dB_t
     inventories:       dQ^I_t = eta_t dt (informed trader),   dQ^B_t = (nu_t - eta_t) dt (broker)
 
-Information. The informed trader (player 0) observes (alpha, Q^I). The broker (player 1) observes the
-price path only; it must infer both the signal and the trader's inventory from the prices.
+Information. The informed trader (player 0) observes (alpha, Q^I, z). The broker (player 1) observes the
+unimpacted price z only, so its information is contained in the trader's (nested information); it must infer
+both the signal and the trader's inventory from the prices.
 
 Rewards:
     J^I = E[ int_0^T ( Q^I_t alpha_t - b eta_t^2 - r_I (Q^I_t)^2 ) dt - psi (Q^I_T)^2 ],
@@ -44,8 +45,7 @@ class BrokerTrader(Game):
     N: int = 40
 
     n_players = 2
-    observation_dims = [2, 0]     # trader: (alpha, Q^I); broker: none beyond the price increments
-    increment_dims = [0, 1]       # trader: no memory; broker: the price increments
+    observation_dims = [3, 1]     # trader: (alpha, Q^I, z); broker: z
     full_dim = 3
     noise_dim = 2
     cv_decay = [1.0, 1.0]
@@ -70,22 +70,19 @@ class BrokerTrader(Game):
 
     def initial_state(self, exogenous):
         M = exogenous['dz'].shape[0]
-        return dict(QI=torch.zeros(M, self.N + 1), QB=torch.zeros(M, self.N + 1))
+        return dict(QI=torch.zeros(M, self.N + 1), QB=torch.zeros(M, self.N + 1), z=torch.zeros(M, self.N + 1))
 
     def step(self, state, exogenous, controls, j):
         eta, nu = controls[0], controls[1]
         state['QI'][:, j + 1] = state['QI'][:, j] + eta * self.dt
         state['QB'][:, j + 1] = state['QB'][:, j] + (nu - eta) * self.dt
+        state['z'][:, j + 1] = state['z'][:, j] + exogenous['dz'][:, j]
 
     def observe(self, i, state, exogenous, j):
-        """Trader: (alpha, Q^I) at t_j. Broker: empty (it acts on the price increments through its GRU)."""
+        """Trader: (alpha, Q^I, z) at t_j. Broker: z at t_j."""
         if i == 0:
-            return torch.stack([exogenous['alpha'][:, j], state['QI'][:, j]], -1)
-        return torch.zeros(exogenous['dz'].shape[0], 0)
-
-    def increment(self, i, state, exogenous, j):
-        """Price increment over [t_j, t_{j+1}], divided by sqrt(dt)."""
-        return exogenous['dz'][:, j:j + 1] / math.sqrt(self.dt)
+            return torch.stack([exogenous['alpha'][:, j], state['QI'][:, j], state['z'][:, j]], -1)
+        return state['z'][:, j:j + 1]
 
     def reward(self, i, state, exogenous, controls):
         """Realised reward of the trader (i = 0) or the broker (i = 1)."""
