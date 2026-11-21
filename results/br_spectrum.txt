@@ -1,0 +1,7 @@
+device cpu
+lam=1.0 open  : spectral radius 0.250; eigenvalue of smallest real part -0.016+0.250i, largest real part +0.037; own Hessian smallest nonzero eig 2.44e-05 / max 9.67e-01 (50 zero) (214s)
+lam=1.0 closed: spectral radius 0.238; eigenvalue of smallest real part -0.089+0.001i, largest real part +0.089; own Hessian smallest nonzero eig 2.44e-05 / max 9.73e-01 (50 zero) (206s)
+lam=1.5 open  : spectral radius 0.401; eigenvalue of smallest real part -0.025+0.104i, largest real part +0.071; own Hessian smallest nonzero eig 2.31e-05 / max 1.27e+00 (50 zero) (174s)
+lam=1.5 closed: spectral radius 0.389; eigenvalue of smallest real part -0.240+0.000i, largest real part +0.240; own Hessian smallest nonzero eig 2.29e-05 / max 1.35e+00 (50 zero) (117s)
+lam=2.0 open  : spectral radius 0.619; eigenvalue of smallest real part -0.051+0.049i, largest real part +0.160; own Hessian smallest nonzero eig 1.82e-05 / max 3.17e+00 (50 zero) (114s)
+lam=2.0 closed: spectral radius 0.928; eigenvalue of smallest real part -0.917+0.000i, largest real part +0.917; own Hessian smallest nonzero eig 1.68e-05 / max 1.23e+01 (50 zero) (116s)

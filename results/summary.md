@@ -149,3 +149,24 @@ Closed loop, two traders, private, lam = 1.5 (exact open- and closed-loop equili
 | closed-loop Picard, damping 0.6 / 0.2 / 0.1 | 3.0 / 3.2 / 3.9% | 8.6 / 8.8 / 8.1% |
 
 Both closed-loop methods find the closed-loop equilibrium at lam = 1.5 and separate it from the open-loop one. At lam = 2 (edge of convexity, psi - lam/2 = 0; exact closed and open equilibria differ by 149%) every closed-loop run fails: gradient play 48-51% from the exact solution, closed-loop Picard diverges at damping 0.2 and 0.1.
+
+## Linear-strategy baseline and best-response spectrum (laptop, 2026-11-21)
+
+Markov chain, lam = 0, against the exact (Wonham-filter) solution (games/pm_linear.py: same damped iteration and targets, controls restricted to linear functions of the own observed path, least squares per time step):
+
+| | 32k | 128k |
+|---|---|---|
+| linear-strategy equilibrium | 14.2 / 14.4% | 13.4 / 13.7% |
+| learned (GRU), batches 7 and 9 | 3.5 / 4.4% | 2.4 / 2.3% |
+
+Best linear fit of the exact control on the own observed path, out of sample (65k paths): 11.5% for both traders. No strategy linear in the observed path gets below about 11.5%, so the nonlinearity accounts for most of the error of linear methods here.
+
+Best-response map in the linear-strategy class at the exact equilibria (scripts/br_spectrum.py, output in results/br_spectrum.txt). Spectral radius of the undamped iteration map, and the own-Hessian smallest nonzero / largest eigenvalue (50 zero eigenvalues = coefficients on S(t_0) = 0):
+
+| lam | open loop | closed loop | own Hessian, closed loop |
+|---|---|---|---|
+| 1 | 0.25 | 0.24 | 2.4e-5 / 0.97 |
+| 1.5 | 0.40 | 0.39 | 2.3e-5 / 1.35 |
+| 2 | 0.62 | 0.93 (real eigenvalues +-0.92) | 1.7e-5 / 12.3 |
+
+At lam = 2 the closed-loop map is nearly non-contractive: with damping 0.5 the slowest mode contracts by 0.96 per iteration (about 100 iterations, as the exact solver needed 96), and regression errors are amplified by about 1/(1 - 0.92) = 12. The smallest nonzero Hessian eigenvalue does not collapse (strictly convex on the effective coefficients, so the best response is unique), but the condition number rises from 4e4 to 7e5, which slows gradient play. The open-loop map stays contractive at lam = 2 (0.62), consistent with the learned open-loop seeds reaching 4.5-6.9% there. The closed-loop failure at lam = 2 is a property of the iteration and of the conditioning, not ill-posedness.
