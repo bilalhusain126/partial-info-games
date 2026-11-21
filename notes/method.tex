@@ -98,7 +98,7 @@ Equation \eqref{eq:control}, for $i = 1, \dots, n$, defines a fixed-point proble
   \label{eq:psi}
   \big( \Psi(u) \big)^i_t = \frac{1}{2 a_i} \E\big[ \Lambda^i_t[u] \,\big|\, \F^i_t \big] , \qquad i = 1, \dots, n ,
 \end{equation}
-where $\Lambda^i_t[u]$ is $\Lambda^i_t$ evaluated under the controls $u$. The controls $u$ form an open-loop Nash equilibrium if and only if $u = \Psi(u)$. Given the $k$-th approximation $u^{(k)}$, the Picard iteration defines the next approximation by
+where $\Lambda^i_t[u]$ is $\Lambda^i_t$ evaluated under the controls $u$. The controls $u$ form an open-loop Nash equilibrium if and only if $u = \Psi(u)$. Given $u^{(k)}$, the next approximation is
 \begin{equation*}
   u^{i,(k+1)}_t = \frac{1}{2 a_i} \E\big[ \Lambda^i_t[u^{(k)}] \,\big|\, \F^i_t \big] , \qquad i = 1, \dots, n .
 \end{equation*}
