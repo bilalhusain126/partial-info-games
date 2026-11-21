@@ -121,8 +121,9 @@ if __name__ == '__main__':
         nu_ex, chg = linear_picard_full(S.exo_v); ref = [torch.tensor(nu_ex[:, i], dtype=torch.float32) for i in range(2)]
         print(f'full-info linear Picard reference: |nu| {np.abs(nu_ex).mean():.3f}, final change {chg:.1e}, |lam nu|/|alpha| {LAM * np.abs(nu_ex).mean() / np.abs(S.exo_v["a1"].cpu().numpy()).mean():.2f}', flush=True)
     if ref is None and os.environ.get('REF_NPZ'):   # exact open-loop controls on the validation paths (references/pt_private_lam*.npz)
-        ref = [torch.tensor(np.load(os.environ['REF_NPZ'])['nu_open'][:, i], dtype=torch.float32) for i in range(2)]
-        print(f'open-loop exact-class reference from {os.path.basename(os.environ["REF_NPZ"])}', flush=True)
+        kind = 'closed' if os.environ.get('CLOSED') else 'open'      # CLOSED=1 (closed-loop Picard targets): compare with the closed-loop solution
+        ref = [torch.tensor(np.load(os.environ['REF_NPZ'])[f'nu_{kind}'][:, i], dtype=torch.float32) for i in range(2)]
+        print(f'{kind}-loop exact-class reference from {os.path.basename(os.environ["REF_NPZ"])}', flush=True)
     print(f'INFO={INFO} LAM={LAM} a={A_} N={N} M={S.m}', flush=True)
     if ITERS > 0: vstate, vctrl, hist = S.run(ITERS, ref=ref)
     else: vstate, vctrl, _ = S.rollout(S.exo_v); hist = []          # ITERS=0 with DIRECT: gradient play from the initial networks (cold start)
