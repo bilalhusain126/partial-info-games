@@ -25,7 +25,7 @@ a mean squared error over simulated paths. No filter is computed. A GRU takes th
 rescaled by $\sqrt{\Delta t}$, as input and returns a summary $h_j$ of the observed path up to $t_j$. A feedforward
 network maps $(t_j, O^i_{t_j}, h_j)$ to $u^i_{t_j}$.
 
-At each iteration, the game is simulated once with the controls of all players fixed. The target of player $i$ is
+At each iteration, the game is simulated once on new paths, with the controls of all players fixed. The target of player $i$ is
 
 $$
 \frac{\Lambda^i_{t_j}}{2 a_i} = u^i_{t_j} + \frac{G^i_j}{2 a_i \, \Delta t},

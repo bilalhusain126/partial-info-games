@@ -180,3 +180,12 @@ Seeds at 64k (mean +- spread over seeds 0-2, player 1 / player 2): two traders l
 - Fraction of Var(α) explained by the broker's Kalman filter (current parameters): 29% at t = 0.3, 35% at t = 0.5, 38% at t = 1 (steady state). A longer horizon makes the broker's targets only slightly less noisy.
 - First order condition check of the exact reference (experiments/checks.py, 20000 paths): residual 0.029 (trader), 0.078 (broker) at T = 1, against 0.013, 0.075 at T = 0.3. Both at the sampling level of the check.
 - Cluster runs of batch 2026-11-21 (stages budget, seeds, control_variate, damping) used T = 0.3.
+
+## 2026-11-21: cluster batch with fixed training paths (T = 0.3 broker)
+
+- 42 runs (stages budget, seeds, control_variate, damping, coupling), all with one set of training paths reused at every iteration.
+- Final averaged errors (player 1 / player 2) at 25k, 50k (mean of 3 seeds), 100k paths: two traders λ = 0: 2.9/3.3, 2.8/2.8, 2.7/2.9; λ = 1: 2.8/3.1, 2.8/2.9, 2.6/2.5; Markov λ = 0: 3.7/3.6, 3.2/3.0, 2.8/2.7; major-minor: 3.1/2.4, 1.7/1.9, 1.1/1.8; broker-trader: 1.3/7.7, 0.8/7.4, 0.6/12.4 (%).
+- Control variate off at 25k roughly doubles the errors (two traders λ = 1: 6.9/6.5; Markov: 7.6/7.4). Broker damping 0.3 and 0.15 does not help (8.5 to 15.5% broker).
+- Two traders λ = 1.5: 2.8 to 3.5% over 3 seeds; λ = 2: 3.4, 3.9, 6.1%.
+- Per-iteration histories: the error reaches its minimum early and then drifts upward (broker at 100k: 6.2% at iteration 2, 26% at iteration 15; two traders λ = 1 at 100k: 2.3% at iteration 5, 4.4/5.3% at iteration 15). Diagnosis: the warm-started networks are trained on the same paths at every iteration and fit their noise.
+- Change: new training paths at every iteration (Solver.run), seed 1000 (seed + 1) + k. The study is rerun with this change; the broker-trader game now has T = 1, N = 50, σ = 0.5.

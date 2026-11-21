@@ -131,12 +131,12 @@ In practice, we damp the Picard iteration,
 \end{equation}
 in which all players are updated at once. Without damping, the iteration may oscillate when the best responses of the players are strongly coupled.
 
-To compute \eqref{eq:picard} numerically, at iteration $k$ we simulate the paths under $u^{(k)}$ and replace the target in \eqref{eq:mse} by its damped version. We denote by $\Lambda^{i,(m,k)}_j$ the values of $\Lambda^i$ along these paths. The parameters of $\mathcal{N}^i$ minimize
+To compute \eqref{eq:picard} numerically, at iteration $k$ we simulate $M$ new paths under $u^{(k)}$ and replace the target in \eqref{eq:mse} by its damped version. We denote by $\Lambda^{i,(m,k)}_j$ the values of $\Lambda^i$ along these paths. The parameters of $\mathcal{N}^i$ minimize
 \begin{equation}
   \label{eq:loss}
   \mathcal{L}^i(\theta^i) = \frac{1}{M N} \sum_{m=1}^{M} \sum_{j=0}^{N-1} \Big| \mathcal{N}^i\big(t_j, O^{i,(m)}_{[0, t_j]}; \theta^i\big) - (1 - \rho) \, u^{i,(m,k)}_{t_j} - \frac{\rho}{2 a_i} \Lambda^{i,(m,k)}_j \Big|^2 .
 \end{equation}
-At each iteration, we initialize each network with the parameters of the previous iterate. After $K$ iterations, we average the controls of the last iterates.
+New paths are drawn at each iteration, so that the regression errors of different iterations are independent. At each iteration, we initialize each network with the parameters of the previous iterate. After $K$ iterations, we average the controls of the last iterates.
 
 The network of player $i$ takes only $O^i$ as input. The unobserved processes, including the other players' observations, enter only through the target $\Lambda^i$. No filter, and no estimate of the other players' estimates, is computed explicitly.
 
@@ -149,7 +149,7 @@ The computational procedure is as follows.
 
     \item \textit{Picard iteration loop:} For $k = 0, 1, \dots, K - 1$:
         \begin{enumerate}[label=(\alph*), itemsep=4pt]
-            \item \textit{Forward simulation:} Simulate $M$ paths of the noise. Evolve the state \eqref{eq:state} by the Euler--Maruyama scheme, where at each step the control of player $i$ is the output of $\mathcal{N}^i(\cdot\,; \theta^{i,(k)})$ on the observed path $O^{i,(m)}_{[0, t_j]}$. Store the state paths, the controls $u^{i,(m,k)}_{t_j}$ and the observed paths.
+            \item \textit{Forward simulation:} Simulate $M$ new paths of the noise. Evolve the state \eqref{eq:state} by the Euler--Maruyama scheme, where at each step the control of player $i$ is the output of $\mathcal{N}^i(\cdot\,; \theta^{i,(k)})$ on the observed path $O^{i,(m)}_{[0, t_j]}$. Store the state paths, the controls $u^{i,(m,k)}_{t_j}$ and the observed paths.
 
             \item \textit{Targets:} For every player $i$, path $m$ and time step $t_j$, evaluate the pathwise functional $\Lambda^{i,(m,k)}_j$ of \eqref{eq:control} by a Riemann sum along the path.
 
@@ -173,7 +173,7 @@ The computational procedure is as follows.
     \Statex
     \Statex \textit{Iterate}
     \For{$k = 0, \dots, K - 1$}
-      \State simulate $M$ paths of $X$ with $u^{i,(k)}_{t_j} = \mathcal{N}^i(t_j, O^i_{[0, t_j]}; \theta^{i,(k)})$, $i = 1, \dots, n$
+      \State simulate $M$ new paths of $X$ with $u^{i,(k)}_{t_j} = \mathcal{N}^i(t_j, O^i_{[0, t_j]}; \theta^{i,(k)})$, $i = 1, \dots, n$
       \For{$i = 1, \dots, n$}
         \State compute the targets $(1 - \rho)\, u^{i,(m,k)}_{t_j} + \frac{\rho}{2 a_i} \Lambda^{i,(m,k)}_j$ for all $m, j$
         \State fit $\mathcal{N}^i$ from $\theta^{i,(k)}$ by $S$ gradient steps on $\mathcal{L}^i(\theta^i)$ \Comment{input $O^i$ only}

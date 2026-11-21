@@ -38,7 +38,7 @@ class Solver:
     Damped Picard iteration over all players, as in the algorithm of the note.
 
     Each iteration k:
-        1. Forward simulation. Simulate M paths of the game under the current controls u⁽ᵏ⁾.
+        1. Forward simulation. Simulate M new paths of the game under the current controls u⁽ᵏ⁾.
         2. Targets. Evaluate Λⁱ / (2 aᵢ) along each path for every player i, by differentiating the
            realised reward with respect to the player's own control (Solver.targets).
         3. Regression. Fit the network of each player to the damped target
@@ -59,7 +59,7 @@ class Solver:
             steps: Adam steps of each regression. Default 1000.
             batch: Minibatch size of the regression. Default 1000.
             lr: Learning rate of the regression. Default 1e-3.
-            n_paths: Number M of training paths. Default 10000.
+            n_paths: Number M of training paths, drawn afresh at each iteration. Default 10000.
             control_variate: Whether to subtract the martingale term of control_variate.py from the targets.
                 Default True.
             seed: Seed of the network initialisation and of the training paths. Default 0.
@@ -72,7 +72,8 @@ class Solver:
         self.lr = lr
         self.controls = [Control(game.observation_dims[i], width) for i in range(game.n_players)]
         self.control_variate = ControlVariate(game) if control_variate else None
-        self.training = game.sample(n_paths, 1 + 100 * seed)
+        self.n_paths = n_paths
+        self.seed = seed
         self.validation = validation_paths(game)
         self.t = torch.arange(game.N, dtype=torch.float32) * game.dt     # the grid t_0, ..., t_{N-1}
 
@@ -235,10 +236,11 @@ class Solver:
         average, count, history = None, 0, []
         start = time.time()
         for k in range(iterations):
-            state, controls = self.simulate(self.training)
-            targets = self.targets(self.training, controls)
+            training = self.game.sample(self.n_paths, 1000 * (self.seed + 1) + k)
+            state, controls = self.simulate(training)
+            targets = self.targets(training, controls)
             damped = [(1 - self.damping) * u + self.damping * target for u, target in zip(controls, targets)]
-            loss = self.fit(self.training, state, damped, self.damping)
+            loss = self.fit(training, state, damped, self.damping)
             _, validation = self.simulate(self.validation)
             if k >= average_from:
                 count += 1
@@ -272,7 +274,7 @@ def first_order_residual(solver: Solver, i: int, n_paths: int = None) -> float:
         The relative L2 distance between the independent regression and the current control.
     """
     game = solver.game
-    exogenous = game.sample(n_paths or next(iter(solver.training.values())).shape[0], 23 + i)
+    exogenous = game.sample(n_paths or solver.n_paths, 23 + i)
     state, controls = solver.simulate(exogenous)
     target = solver.targets(exogenous, controls)[i]
     saved_control, saved_steps = solver.controls[i], solver.steps
