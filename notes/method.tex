@@ -26,9 +26,9 @@
 \section{Method}
 \label{sec:method}
 
-In this section, we present a method for stochastic differential games in which the players observe different information. The first order condition of each player expresses its control as a conditional expectation given its own observations. A Nash equilibrium is a set of controls for which these conditions hold for all players at once. We compute it by simulating the game under the current controls, approximating each conditional expectation by minimizing a mean squared error over the simulated paths, and iterating. In the remainder of this section, we describe the game, the first order condition of one player, the equilibrium as a fixed point, and the numerical scheme.
+In this section, we present a method for stochastic differential games in which the players observe different information. The first order condition of each player expresses its control as a conditional expectation given its own observations. A Nash equilibrium is a set of controls for which these conditions hold for all players at once. We compute it by simulating the game under the current controls, approximating each conditional expectation by minimizing a mean squared error over the simulated paths, and iterating. In the remainder of this section, we describe the setting, the first order condition of one player, the equilibrium as a fixed point, and the numerical scheme.
 
-\subsection{The game}
+\subsection{Setting}
 \label{sec:game}
 
 We work on a filtered probability space $(\Omega, \G, \mathbb{G} = (\G_t)_{t \in [0,T]}, \pr)$, where $T > 0$ is a fixed and finite horizon. The filtration $\mathbb{G}$ supports a $d$-dimensional Brownian motion $W$.
