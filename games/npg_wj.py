@@ -67,7 +67,7 @@ def exact_discrete_h0(al, dz):
     return eta, nu
 
 if __name__ == '__main__':
-    M = WJModel(); S = Solver(M, steps=int(os.environ.get('STEPS', '800')), batch=int(os.environ.get('BATCH', '1024')), m_paths=int(os.environ.get('M_PATHS', '8192')))
+    M = WJModel(); S = Solver(M, rho=float(os.environ.get('RHO_DAMP', '0.7')), steps=int(os.environ.get('STEPS', '800')), batch=int(os.environ.get('BATCH', '1024')), m_paths=int(os.environ.get('M_PATHS', '8192')))
     ref = None
     if W.H == 0:                                  # REF=discrete (default): exact solution of the simulated discrete game; REF=continuous: Euler-discretised continuous-time solution
         al_v, dz_v = S.exo_v['al'].cpu().numpy().astype(np.float64), S.exo_v['dz'].cpu().numpy().astype(np.float64)
