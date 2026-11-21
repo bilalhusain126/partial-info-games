@@ -2,8 +2,8 @@
 Abstract base class for the games, and the shared part of the two trading games.
 
 A game is defined on the grid t_j = j dt, j = 0, ..., N, with dt = T / N. It supplies the simulator of the state,
-the observations O^i of each player, the realised reward R^i of each player, and the curvature 2 a_i dt of the
-reward in the player's own control, from which the solver builds the targets Lambda^i / (2 a_i).
+the observations Oⁱ of each player, the realised reward Rⁱ of each player, and the curvature 2 aᵢ dt of the
+reward in the player's own control, from which the solver builds the targets Λⁱ / (2 aᵢ).
 """
 
 from abc import ABC, abstractmethod
@@ -20,7 +20,7 @@ class Game(ABC):
     Attributes set by subclasses:
         n_players:         number of players
         T, N:              horizon and number of time steps
-        observation_dims:  per player, the dimension of the observation O^i_t
+        observation_dims:  per player, the dimension of the observation Oⁱ_t
 
     For the control variate only (see control_variate.py), subclasses also set full_dim (the dimension of the
     full state), noise_dim (the number of martingale increments per step) and cv_decay (per player, the decay per
@@ -55,15 +55,15 @@ class Game(ABC):
 
     @abstractmethod
     def observe(self, i: int, state: dict, exogenous: dict, j: int) -> torch.Tensor:
-        """Observation O^i_{t_j} of player i, [M, observation_dims[i]]."""
+        """Observation Oⁱ_{t_j} of player i, [M, observation_dims[i]]."""
 
     @abstractmethod
     def reward(self, i: int, state: dict, exogenous: dict, controls: list) -> torch.Tensor:
-        """Realised reward R^i of player i along each path, [M]."""
+        """Realised reward Rⁱ of player i along each path, [M]."""
 
     @abstractmethod
     def curvature(self, i: int) -> torch.Tensor:
-        """Minus the second derivative of the realised reward in player i's control at each t_j (2 a_i dt), [N]."""
+        """Minus the second derivative of the realised reward in player i's control at each t_j (2 aᵢ dt), [N]."""
 
     @abstractmethod
     def exact(self, exogenous: dict) -> np.ndarray:
@@ -91,19 +91,19 @@ class Game(ABC):
 @dataclass
 class TradingGame(Game):
     """
-    Two traders with private signals alpha^1, alpha^2 and a common price S.
+    Two traders with private signals α¹, α² and a common price S.
 
     Dynamics:
-        price:        dS_t = mu_t dt + sigma dW^S_t,   mu_t = alpha^1_t + alpha^2_t + lam (nu^1_t + nu^2_t)
-        inventories:  dq^i_t = nu^i_t dt
+        price:        dS_t = μ_t dt + σ dW^S_t,   μ_t = α¹_t + α²_t + λ (ν¹_t + ν²_t)
+        inventories:  dq^i_t = νⁱ_t dt
     The signals come from the subclass (Ornstein--Uhlenbeck in TwoTraders, Markov chains in MarkovTraders). They
-    are private: trader i observes O^i = (alpha^i, q^i, S).
+    are private: trader i observes Oⁱ = (αⁱ, qⁱ, S).
 
     Reward of trader i:
-        J^i = E[ int_0^T ( q^i_t mu_t - a (nu^i_t)^2 - phi (q^i_t)^2 ) dt - psi (q^i_T)^2 ].
-    The first order condition of the note, with a_i = a, is
-        2 a nu^i_t = E[ lam q^i_t - 2 psi q^i_T + int_t^T ( mu_s - 2 phi q^i_s ) ds | F^i_t ],
-    so Lambda^i_t = lam q^i_t - 2 psi q^i_T + int_t^T ( mu_s - 2 phi q^i_s ) ds.
+        Jⁱ = 𝔼[ ∫₀ᵀ ( qⁱ_t μ_t - a (νⁱ_t)^2 - φ (qⁱ_t)^2 ) dt - ψ (qⁱ_T)^2 ].
+    The first order condition of the note, with aᵢ = a, is
+        2 a νⁱ_t = 𝔼[ λ qⁱ_t - 2 ψ qⁱ_T + ∫ₜᵀ ( μ_s - 2 φ qⁱ_s ) ds | ℱⁱ_t ],
+    so Λⁱ_t = λ qⁱ_t - 2 ψ qⁱ_T + ∫ₜᵀ ( μ_s - 2 φ qⁱ_s ) ds.
     """
 
     lam: float = 1.0          # permanent price impact
@@ -132,7 +132,7 @@ class TradingGame(Game):
         state['S'][:, j + 1] = state['S'][:, j] + mu * self.dt + self.sigma * exogenous['dWS'][:, j]
 
     def observe(self, i, state, exogenous, j):
-        """O^i_{t_j} = (alpha^i, q^i, S) at t_j."""
+        """Oⁱ_{t_j} = (αⁱ, qⁱ, S) at t_j."""
         return torch.stack([exogenous[f'alpha{i + 1}'][:, j], state[f'q{i + 1}'][:, j], state['S'][:, j]], -1)
 
     def reward(self, i, state, exogenous, controls):
@@ -146,6 +146,6 @@ class TradingGame(Game):
         return torch.full((self.N,), 2 * self.a * self.dt)
 
     def full_state(self, state, exogenous):
-        """(alpha^1, alpha^2, q^1, q^2, S) at each t_j."""
+        """(α¹, α², q¹, q², S) at each t_j."""
         return torch.stack([exogenous['alpha1'][:, :-1], exogenous['alpha2'][:, :-1],
                             state['q1'][:, :-1], state['q2'][:, :-1], state['S'][:, :-1]], -1)

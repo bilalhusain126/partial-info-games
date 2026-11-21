@@ -1,5 +1,5 @@
 """
-The control of one player: the network N^i of the note.
+The control of one player: the network 𝒩ⁱ of the note.
 """
 
 import torch
@@ -10,22 +10,22 @@ from .utils import mlp
 
 class Control(nn.Module):
     """
-    The network N^i of player i.
+    The network 𝒩ⁱ of player i.
 
-    The control at t_j is a function of the observed path O^i on [0, t_j]:
+    The control at t_j is a function of the observed path Oⁱ on [0, t_j]:
 
-        u^i_{t_j} = f( t_j, O^i_{t_j}, h_j ),
+        uⁱ_{t_j} = f( t_j, Oⁱ_{t_j}, h_j ),
 
     where h_j is a learned summary of the observed path up to t_j and f is a feedforward network. The summary
-    is computed by a GRU (a recurrent network) that takes the increments of O^i over [t_0, t_1], ...,
-    [t_{j-1}, t_j] as input, one at a time, with h_0 = 0. Thus u^i_{t_j} depends only on the observations up to
-    t_j, so it is F^i_{t_j}-measurable.
+    is computed by a GRU (a recurrent network) that takes the increments of Oⁱ over [t_0, t_1], ...,
+    [t_{j-1}, t_j] as input, one at a time, with h_0 = 0. Thus uⁱ_{t_j} depends only on the observations up to
+    t_j, so it is ℱⁱ_{t_j}-measurable.
     """
 
     def __init__(self, observation_dim: int, width: int = 32):
         """
         Args:
-            observation_dim: Dimension of the observation O^i_t.
+            observation_dim: Dimension of the observation Oⁱ_t.
             width: Dimension of the summary h_j. Default 32.
         """
         super().__init__()
@@ -50,7 +50,7 @@ class Control(nn.Module):
         """
         Args:
             t: Time [M, 1].
-            observation: Current observation O^i_{t_j} [M, observation_dim].
+            observation: Current observation Oⁱ_{t_j} [M, observation_dim].
             summary: Summary h_j of the observed path [M, width].
 
         Returns:

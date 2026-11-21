@@ -2,11 +2,11 @@
 
 Stages:
     budget           the cases with an exact reference at 25000, 50000 and 100000 paths, seed 0
-    seeds            the same cases at 50000 paths, seeds 1 and 2; the Markov-chain game at lam = 1, seeds 0-2, with
+    seeds            the same cases at 50000 paths, seeds 1 and 2; the Markov-chain game at λ = 1, seeds 0-2, with
                      the first order condition residuals
     control_variate  the cases with an exact reference at 25000 paths without the control variate
     damping          the broker-trader game with damping 0.3 and 0.15
-    coupling         two traders at lam = 1.5 and 2 (stronger coupling), three seeds
+    coupling         two traders at λ = 1.5 and 2 (stronger coupling), three seeds
 
 Usage: runs.py <stage> [--dry-run]      all runs of the stage, one after another
        runs.py <stage> --count          number of runs in the stage
@@ -23,7 +23,7 @@ CASES = [dict(game='two_traders', lam=0.0), dict(game='two_traders', lam=1.0), d
 
 
 def command(**config):
-    """Command line of one run: command(game='two_traders', lam=1.0, paths=50000)."""
+    """Command line of one run: command(game='two_traders', λ=1.0, paths=50000)."""
     flags = []
     for key, value in config.items():
         flag = f"--{key.replace('_', '-')}"

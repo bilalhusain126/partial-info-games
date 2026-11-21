@@ -1,16 +1,16 @@
 """
 Independent checks of the exact references: each must satisfy the first order condition of the note.
 
-At an open-loop equilibrium, u^i_t = (1 / 2 a_i) E[ Lambda^i_t | F^i_t ] for every player.
+At an open-loop equilibrium, uⁱ_t = (1 / 2 aᵢ) 𝔼[ Λⁱ_t | ℱⁱ_t ] for every player.
 For each reference, the exact controls are fed to Solver.targets on fresh paths, which gives
-Lambda^i / (2 a_i) along each path. The difference target - control is regressed at each t_j on the
+Λⁱ / (2 aᵢ) along each path. The difference target - control is regressed at each t_j on the
 player's information (1, current observation, all past observation increments). Its projection is the
 first order condition residual, reported relative to the size of the control: zero up to sampling error
 at an exact equilibrium, and the sampling error falls as n_paths grows (about 5-10% at 20000 paths, with
 up to 2N + 4 features per time). The regression uses a richer set of features than any exact solution,
 so the check does not presuppose its form.
 
-Checked: the exact solutions of the four games, and the two-trader references at lam = 1, 1.5 and 2.
+Checked: the exact solutions of the four games, and the two-trader references at λ = 1, 1.5 and 2.
 
 Usage: python checks.py [n_paths]   (default 20000)
 """

@@ -2,18 +2,18 @@
 The major-minor LQG game, scalar, one minor player, with partial observations of both players.
 
 Dynamics and observations:
-    major:  dx^0_t = (A0 x^0_t + B0 u^0_t) dt + D0 dw^0_t,             dy^0_t = L0 x^0_t dt + s0 dv^0_t
-    minor:  dx^1_t = (A1 x^1_t + G x^0_t + B1 u^1_t) dt + D1 dw^1_t,   dy^1_t = (L1 x^1_t, L2 x^0_t) dt + s1 dv^1_t
+    major:  dx^0_t = (A0 x⁰_t + B0 u⁰_t) dt + D0 dw^0_t,             dy^0_t = L0 x⁰_t dt + s0 dv^0_t
+    minor:  dx^1_t = (A1 x¹_t + G x⁰_t + B1 u¹_t) dt + D1 dw^1_t,   dy^1_t = (L1 x¹_t, L2 x⁰_t) dt + s1 dv^1_t
 
-Information. The major player (0) observes y^0 and the minor player (1) observes y^1. Neither observes the
-other's observation path, and the minor player must estimate the major player's own estimate of x^0.
+Information. The major player (0) observes y⁰ and the minor player (1) observes y¹. Neither observes the
+other's observation path, and the minor player must estimate the major player's own estimate of x⁰.
 
-Costs, with discount rate rho (each player's reward is minus its cost):
-    J^0 = E int_0^T e^{-rho t} [ Q0 (x^0_t - eta0)^2 + R0 (u^0_t)^2 ] dt,
-    J^1 = E int_0^T e^{-rho t} [ Q1 (x^1_t - H x^0_t - eta1)^2 + R1 (u^1_t)^2 ] dt.
+Costs, with discount rate ρ (each player's reward is minus its cost):
+    J⁰ = E ∫₀ᵀ e^{-ρ t} [ Q0 (x⁰_t - eta0)^2 + R0 (u⁰_t)^2 ] dt,
+    J¹ = E ∫₀ᵀ e^{-ρ t} [ Q1 (x¹_t - H x⁰_t - eta1)^2 + R1 (u¹_t)^2 ] dt.
 
 Exact solution of the discretised game (MajorMinor.exact): the major player's discrete Kalman filter and
-discounted LQR; the minor player's discrete Kalman filter of (x^1, x^0, xhat^0), with the major player's
+discounted LQR; the minor player's discrete Kalman filter of (x¹, x⁰, x̂⁰), with the major player's
 filter in its dynamics, and discounted LQR.
 """
 
@@ -34,8 +34,8 @@ def discounted_lqr(game, F, B, c, Q, q, R):
     """
     Discounted discrete LQR on the grid of game.
 
-    Minimizes sum_j beta^j [ (z_j - zeta)' Q (z_j - zeta) + R u_j^2 ] dt, with Q zeta = q and
-    beta = exp(-rho dt), subject to z_{j+1} = F(j) z_j + B u_j + c(j) + noise.
+    Minimizes Σ_j β^j [ (z_j - ζ)' Q (z_j - ζ) + R u_j^2 ] dt, with Q ζ = q and
+    β = exp(-ρ dt), subject to z_{j+1} = F(j) z_j + B u_j + c(j) + noise.
 
     Returns:
         gain [N, n], offset [N] of the feedback u_j = -(gain_j z_j + offset_j).
@@ -106,18 +106,18 @@ class MajorMinor(Game):
     D1: float = 0.5
     s1: float = 0.3
     rho: float = 0.5                 # discount rate
-    initial_variance: float = 1.0    # variance of x^0_0 and x^1_0
+    initial_variance: float = 1.0    # variance of x⁰_0 and x¹_0
     T: float = 5.0
     N: int = 100
 
     n_players = 2
-    observation_dims = [1, 2]        # y^0, y^1
+    observation_dims = [1, 2]        # y⁰, y¹
     full_dim = 2
     noise_dim = 2
 
     @property
     def discount(self) -> float:
-        """Discount factor per step, exp(-rho dt)."""
+        """Discount factor per step, exp(-ρ dt)."""
         return math.exp(-self.rho * self.dt)
 
     @property
@@ -158,11 +158,11 @@ class MajorMinor(Game):
         state['y1'][:, j + 1] = state['y1'][:, j] + torch.stack([self.L1 * x1, self.L2 * x0], -1) * dt + self.s1 * exogenous['dv1'][:, j]
 
     def observe(self, i, state, exogenous, j):
-        """y^i at t_j."""
+        """yⁱ at t_j."""
         return state[f'y{i}'][:, j]
 
     def discounting(self):
-        """Discount factors exp(-rho t_j), [N]."""
+        """Discount factors exp(-ρ t_j), [N]."""
         return torch.tensor(np.exp(-self.rho * np.arange(self.N) * self.dt), dtype=torch.float32)
 
     def reward(self, i, state, exogenous, controls):
@@ -175,15 +175,15 @@ class MajorMinor(Game):
         return -(running * self.discounting()).sum(1) * self.dt
 
     def curvature(self, i):
-        """2 R_i exp(-rho t_j) dt."""
+        """2 R_i exp(-ρ t_j) dt."""
         return 2 * (self.R0 if i == 0 else self.R1) * self.discounting() * self.dt
 
     def full_state(self, state, exogenous):
-        """X_{t_j} = (x^0, x^1) at t_j."""
+        """X_{t_j} = (x⁰, x¹) at t_j."""
         return torch.stack([state['x0'][:, :-1], state['x1'][:, :-1]], -1)
 
     def martingale_increments(self, exogenous):
-        """(dw^0, dw^1) / sqrt(dt)."""
+        """(dw^0, dw^1) / √dt."""
         return torch.stack([exogenous['dw0'], exogenous['dw1']], -1) / math.sqrt(self.dt)
 
     def exact(self, exogenous):
@@ -191,13 +191,13 @@ class MajorMinor(Game):
         N, dt = self.N, self.dt
         a0 = 1 + self.A0 * dt
 
-        # Major player: Kalman filter of x^0 from y^0, and LQR on its estimate.
+        # Major player: Kalman filter of x⁰ from y⁰, and LQR on its estimate.
         gain0, offset0 = discounted_lqr(self, lambda j: np.array([[a0]]), np.array([self.B0 * dt]), lambda j: np.zeros(1),
                                         np.array([[self.Q0]]), np.array([self.Q0 * self.eta0]), self.R0)
         filter0 = kalman_gains(self, lambda j: np.array([[a0]]), lambda j: np.array([[self.D0 ** 2 * dt]]),
                                np.array([[self.L0]]), np.array([[self.s0 ** 2]]), np.array([[self.initial_variance]]))[:, 0, 0]
 
-        # Minor player: state z = (x^1, x^0, xhat^0), where xhat^0 is the major player's estimate, which
+        # Minor player: state z = (x¹, x⁰, x̂⁰), where x̂⁰ is the major player's estimate, which
         # follows the major player's filter recursion under its feedback control.
         def F1(j):
             return np.array([[1 + self.A1 * dt, self.G * dt, 0.0],
@@ -212,7 +212,7 @@ class MajorMinor(Game):
 
         B1 = np.array([self.B1 * dt, 0.0, 0.0])
         C1 = np.array([[self.L1, 0, 0], [0, self.L2, 0]])
-        target = np.array([1.0, -self.H, 0.0])          # x^1 - H x^0
+        target = np.array([1.0, -self.H, 0.0])          # x¹ - H x⁰
         gain1, offset1 = discounted_lqr(self, F1, B1, c1, np.outer(target, target) * self.Q1, target * self.Q1 * self.eta1, self.R1)
         filter1 = kalman_gains(self, F1, noise1, C1, np.diag([self.s1 ** 2, self.s1 ** 2]),
                                np.diag([self.initial_variance, self.initial_variance, 0.0]))
@@ -222,7 +222,7 @@ class MajorMinor(Game):
         x0, x1 = to_numpy('x0_0'), to_numpy('x1_0')
         dw0, dw1, dv0, dv1 = to_numpy('dw0'), to_numpy('dw1'), to_numpy('dv0'), to_numpy('dv1')
         M = x0.shape[0]
-        estimate0 = np.zeros(M)                          # the major player's estimate of x^0
+        estimate0 = np.zeros(M)                          # the major player's estimate of x⁰
         estimate1 = np.zeros((M, 3))                     # the minor player's estimate of z
         controls = np.zeros((M, 2, N))
         for j in range(N):

@@ -3,16 +3,16 @@ Two traders with private Ornstein--Uhlenbeck signals and a common price.
 
 The game of base.TradingGame with the signals
 
-    dalpha^i_t = -kappa alpha^i_t dt + sigma_alpha dW^i_t,   alpha^i_0 ~ N(0, sigma_alpha^2 / (2 kappa)),
+    dalpha^i_t = -κ αⁱ_t dt + σ_α dW^i_t,   αⁱ_0 ~ N(0, σ_α^2 / (2 κ)),
 
 each observed by trader i only. Trader i infers the other signal from the price, which also moves with
-the other trader's trades, and those trades depend on the other trader's inference of alpha^i. No
+the other trader's trades, and those trades depend on the other trader's inference of αⁱ. No
 finite-dimensional filter closes this hierarchy.
 
 Exact solutions, used to validate the learned method:
-    TwoTraders.exact     at lam = 0 the traders decouple, and each solves a discrete LQG problem with the
+    TwoTraders.exact     at λ = 0 the traders decouple, and each solves a discrete LQG problem with the
                          Kalman filter of the other signal.
-    LinearStrategies     at lam > 0, the open-loop equilibrium among strategies linear in the own observed
+    LinearStrategies     at λ > 0, the open-loop equilibrium among strategies linear in the own observed
                          path. In this Gaussian game a best response to a linear strategy is linear, so this
                          is the equilibrium of the game.
 """
@@ -39,7 +39,7 @@ class TwoTraders(TradingGame):
 
     @property
     def signal_variance(self) -> float:
-        """Stationary variance sigma_alpha^2 / (2 kappa) of each signal, the law of alpha^i_0."""
+        """Stationary variance σ_α^2 / (2 κ) of each signal, the law of αⁱ_0."""
         return self.sigma_alpha ** 2 / (2 * self.kappa)
 
     def sample(self, n_paths, seed):
@@ -67,21 +67,21 @@ class TwoTraders(TradingGame):
         return {key: torch.tensor(value, dtype=torch.float32) for key, value in exogenous.items()}
 
     def martingale_increments(self, exogenous):
-        """(dW^1, dW^2, dW^S) / sqrt(dt)."""
+        """(dW^1, dW^2, dW^S) / √dt."""
         return torch.stack([exogenous['dW1'], exogenous['dW2'], exogenous['dWS']], -1) / math.sqrt(self.dt)
 
     def exact(self, exogenous):
         """
-        Exact equilibrium at lam = 0, [M, 2, N].
+        Exact equilibrium at λ = 0, [M, 2, N].
 
-        At lam = 0 the price does not depend on the trades, so trader i solves a single-agent problem.
-        Its state is (q^i, alpha^i, alphahat^j), where alphahat^j is the Kalman filter of the other signal
-        from the price increments dS - alpha^i dt = alpha^j dt + sigma dW^S. The control is the discrete
-        LQG feedback nu^i_{t_j} = -L_j (q^i, alpha^i, alphahat^j), with L_j from the backward Riccati
+        At λ = 0 the price does not depend on the trades, so trader i solves a single-agent problem.
+        Its state is (qⁱ, αⁱ, α̂ʲ), where α̂ʲ is the Kalman filter of the other signal
+        from the price increments dS - αⁱ dt = αʲ dt + σ dW^S. The control is the discrete
+        LQG feedback νⁱ_{t_j} = -L_j (qⁱ, αⁱ, α̂ʲ), with L_j from the backward Riccati
         recursion of the discretised problem.
 
         Raises:
-            NotImplementedError: If lam != 0.
+            NotImplementedError: If λ ≠ 0.
         """
         if self.lam != 0.0:
             raise NotImplementedError('exact solution at lam = 0 only; see LinearStrategies for lam > 0')
@@ -94,8 +94,8 @@ class TwoTraders(TradingGame):
             filter_gain[j] = variance / (variance * dt + self.sigma ** 2)
             variance = (1 - kappa * dt) ** 2 * (variance - filter_gain[j] * dt * variance) + self.sigma_alpha ** 2 * dt
 
-        # Backward Riccati recursion for the state z = (q, alpha^i, alphahat^j): z_{j+1} = F z_j + G nu_j + exogenous,
-        # with running cost (z' Q z + a nu^2) dt and terminal cost psi q^2.
+        # Backward Riccati recursion for the state z = (q, αⁱ, α̂ʲ): z_{j+1} = F z_j + G nu_j + exogenous,
+        # with running cost (z' Q z + a ν²) dt and terminal cost ψ q².
         F = np.diag([1.0, 1 - kappa * dt, 1 - kappa * dt])
         G = np.array([dt, 0.0, 0.0])
         Q = np.array([[self.phi, -0.5, -0.5], [-0.5, 0, 0], [-0.5, 0, 0]])
@@ -111,12 +111,12 @@ class TwoTraders(TradingGame):
         dWS = exogenous['dWS'].cpu().numpy().astype(np.float64)
         M = alpha.shape[0]
         q = np.zeros((M, 2))
-        estimate = np.zeros((M, 2))                # estimate[:, i] = alphahat^j of trader i
+        estimate = np.zeros((M, 2))                # estimate[:, i] = α̂ʲ of trader i
         nu = np.zeros((M, 2, N))
         for j in range(N):
             for i in (0, 1):
                 nu[:, i, j] = -(feedback[j] @ np.stack([q[:, i], alpha[:, i, j], estimate[:, i]]))
-            observed = alpha[:, ::-1, j] * dt + self.sigma * dWS[:, j, None]       # alpha^j dt + sigma dW^S
+            observed = alpha[:, ::-1, j] * dt + self.sigma * dWS[:, j, None]       # αʲ dt + σ dW^S
             estimate = (1 - kappa * dt) * (estimate + filter_gain[j] * (observed - estimate * dt))
             q = q + nu[:, :, j] * dt
         return nu
@@ -126,11 +126,11 @@ class LinearStrategies:
     """
     Exact open-loop equilibrium of a TwoTraders game among strategies linear in the own observed path,
 
-        nu^i_{t_j} = sum_{k <= j} ( beta^i[j, k, 0] alpha^i_{t_k} + beta^i[j, k, 1] S_{t_k} ).
+        νⁱ_{t_j} = Σ_{k ≤ j} ( β^i[j, k, 0] αⁱ_{t_k} + β^i[j, k, 1] S_{t_k} ).
 
     The shocks of the discretised game form a vector e in R^K, K = 2 + 3N: the two initial signals and,
     at each step, the increments of the two signal noises and of the price noise, at unit variance. Every
-    process is linear in e and is represented by its loading vector, so E[x y] = x . y and the expected
+    process is linear in e and is represented by its loading vector, so 𝔼[x y] = x . y and the expected
     cost of each trader is computed exactly, without simulation. Each best response is computed by L-BFGS
     over the trader's coefficients, with the other trader's control held fixed as a process (the open
     loop of the note), and the equilibrium by a damped best-response iteration.
@@ -147,7 +147,7 @@ class LinearStrategies:
         N, dt = game.N, game.dt
         self.K = 2 + 3 * N
 
-        # Loadings of the signals: alpha^i_{t_j} = signal_loadings[i, j] . e.
+        # Loadings of the signals: αⁱ_{t_j} = signal_loadings[i, j] . e.
         self.signal_loadings = torch.zeros(2, N + 1, self.K, **FLOAT64_CPU)
         for i in range(2):
             self.signal_loadings[i, 0, i] = game.signal_variance ** 0.5
@@ -155,25 +155,25 @@ class LinearStrategies:
                 self.signal_loadings[i, j + 1] = (1 - game.kappa * dt) * self.signal_loadings[i, j]
                 self.signal_loadings[i, j + 1, 2 + 3 * j + i] += game.sigma_alpha * dt ** 0.5
 
-        # Loadings of the price noise sigma dW^S over [t_j, t_{j+1}].
+        # Loadings of the price noise σ dW^S over [t_j, t_{j+1}].
         self.price_noise = torch.zeros(N, self.K, **FLOAT64_CPU)
         for j in range(N):
             self.price_noise[j, 2 + 3 * j + 2] = game.sigma * dt ** 0.5
 
-        self.causal = torch.tril(torch.ones(N, N, **FLOAT64_CPU))[:, :, None]   # beta[j, k] is used for k <= j only
+        self.causal = torch.tril(torch.ones(N, N, **FLOAT64_CPU))[:, :, None]   # β[j, k] is used for k ≤ j only
 
     def forward(self, beta, own: int = None, other_control=None):
         """
-        Loadings of the processes under the coefficients beta.
+        Loadings of the processes under the coefficients β.
 
         Args:
-            beta: Coefficients [2, N, N, 2].
-            own: With other_control, the trader whose control follows beta; the other trader's control is
+            β: Coefficients [2, N, N, 2].
+            own: With other_control, the trader whose control follows β; the other trader's control is
                 held fixed at other_control. Default none.
             other_control: Loadings of the other trader's control [N, K].
 
         Returns:
-            controls [2, N, K], inventories [2, N + 1, K] and price drift mu [N, K].
+            controls [2, N, K], inventories [2, N + 1, K] and price drift μ [N, K].
         """
         game = self.game
         N, dt = game.N, game.dt
@@ -194,11 +194,11 @@ class LinearStrategies:
 
     def cost(self, i: int, beta, other_control):
         """
-        Expected cost of trader i (minus the reward J^i), computed from the loadings.
+        Expected cost of trader i (minus the reward Jⁱ), computed from the loadings.
 
         Args:
             i: The trader.
-            beta: Coefficients [2, N, N, 2]; only beta[i] is used.
+            β: Coefficients [2, N, N, 2]; only β[i] is used.
             other_control: Loadings of the other trader's control [N, K], held fixed.
         """
         game = self.game
@@ -208,11 +208,11 @@ class LinearStrategies:
 
     def best_response(self, beta, i: int, inner: int = 200):
         """
-        Coefficients of trader i that minimize its expected cost, by L-BFGS from beta[i], with the other
-        trader's control under beta held fixed as a process.
+        Coefficients of trader i that minimize its expected cost, by L-BFGS from β[i], with the other
+        trader's control under β held fixed as a process.
 
         Args:
-            beta: Current coefficients [2, N, N, 2].
+            β: Current coefficients [2, N, N, 2].
             i: The trader.
             inner: Maximum number of L-BFGS iterations. Default 200.
 
@@ -235,7 +235,7 @@ class LinearStrategies:
 
     def solve(self, iterations: int = 150, damping: float = 0.5, start=None, tolerance: float = 1e-6):
         """
-        Damped best-response iteration beta <- (1 - damping) beta + damping BR(beta).
+        Damped best-response iteration β <- (1 - damping) β + damping BR(β).
 
         Args:
             iterations: Maximum number of iterations. Default 150.
@@ -264,7 +264,7 @@ class LinearStrategies:
         Controls of the linear strategies along simulated paths.
 
         Args:
-            beta: Coefficients [2, N, N, 2].
+            β: Coefficients [2, N, N, 2].
             exogenous: Noise of the paths (TwoTraders.sample).
 
         Returns:

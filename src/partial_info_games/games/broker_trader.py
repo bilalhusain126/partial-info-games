@@ -2,21 +2,21 @@
 The broker-trader game, one asset, without transient impact.
 
 Dynamics:
-    unimpacted price:  dz_t = alpha_t dt + sigma dW_t
-    trading signal:    dalpha_t = -kappa alpha_t dt + sigma_alpha dB_t
+    unimpacted price:  dz_t = alpha_t dt + σ dW_t
+    trading signal:    dalpha_t = -κ alpha_t dt + σ_α dB_t
     inventories:       dQ^I_t = eta_t dt (informed trader),   dQ^B_t = (nu_t - eta_t) dt (broker)
 
-Information. The informed trader (player 0) observes (alpha, Q^I, z). The broker (player 1) observes the
+Information. The informed trader (player 0) observes (α, Qᴵ, z). The broker (player 1) observes the
 unimpacted price z only, so its information is contained in the trader's (nested information); it must infer
 both the signal and the trader's inventory from the prices.
 
 Rewards:
-    J^I = E[ int_0^T ( Q^I_t alpha_t - b eta_t^2 - r_I (Q^I_t)^2 ) dt - psi (Q^I_T)^2 ],
-    J^B = E[ int_0^T ( Q^B_t alpha_t - a nu_t^2 - r_B (Q^B_t)^2 ) dt - phi (Q^B_T)^2 ].
+    Jᴵ = 𝔼[ ∫₀ᵀ ( Qᴵ_t alpha_t - b eta_t^2 - r_I (Qᴵ_t)^2 ) dt - ψ (Qᴵ_T)^2 ],
+    Jᴮ = 𝔼[ ∫₀ᵀ ( Qᴮ_t alpha_t - a nu_t^2 - r_B (Qᴮ_t)^2 ) dt - φ (Qᴮ_T)^2 ].
 
 Exact solution of the discretised game (BrokerTrader.exact): the trader's problem does not depend on the
-broker, and is a discrete LQR in (alpha, Q^I). The broker filters (alpha, Q^I) from the price increments
-with a discrete Kalman filter, then solves a discrete LQR in (Qhat^B, alphahat, Qhat^I).
+broker, and is a discrete LQR in (α, Qᴵ). The broker filters (α, Qᴵ) from the price increments
+with a discrete Kalman filter, then solves a discrete LQR in (Q̂ᴮ, α̂, Q̂ᴵ).
 """
 
 import math
@@ -45,7 +45,7 @@ class BrokerTrader(Game):
     N: int = 40
 
     n_players = 2
-    observation_dims = [3, 1]     # trader: (alpha, Q^I, z); broker: z
+    observation_dims = [3, 1]     # trader: (α, Qᴵ, z); broker: z
     full_dim = 3
     noise_dim = 2
     cv_decay = [1.0, 1.0]
@@ -55,7 +55,7 @@ class BrokerTrader(Game):
         Simulates the signal and the price by the Euler--Maruyama scheme.
 
         Returns:
-            alpha: signal paths [M, N + 1]
+            α: signal paths [M, N + 1]
             dz: price increments [M, N]
         """
         rng = np.random.default_rng(seed)
@@ -79,7 +79,7 @@ class BrokerTrader(Game):
         state['z'][:, j + 1] = state['z'][:, j] + exogenous['dz'][:, j]
 
     def observe(self, i, state, exogenous, j):
-        """Trader: (alpha, Q^I, z) at t_j. Broker: z at t_j."""
+        """Trader: (α, Qᴵ, z) at t_j. Broker: z at t_j."""
         if i == 0:
             return torch.stack([exogenous['alpha'][:, j], state['QI'][:, j], state['z'][:, j]], -1)
         return state['z'][:, j:j + 1]
@@ -99,11 +99,11 @@ class BrokerTrader(Game):
         return torch.full((self.N,), 2 * (self.b if i == 0 else self.a) * self.dt)
 
     def full_state(self, state, exogenous):
-        """X_{t_j} = (alpha, Q^B, Q^I) at t_j."""
+        """X_{t_j} = (α, Qᴮ, Qᴵ) at t_j."""
         return torch.stack([exogenous['alpha'][:, :-1], state['QB'][:, :-1], state['QI'][:, :-1]], -1)
 
     def martingale_increments(self, exogenous):
-        """(dB, dW) / sqrt(dt), the signal and price Brownian increments recovered from the paths."""
+        """(dB, dW) / √dt, the signal and price Brownian increments recovered from the paths."""
         alpha, dz = exogenous['alpha'], exogenous['dz']
         dB = (alpha[:, 1:] - alpha[:, :-1] + self.kappa * alpha[:, :-1] * self.dt) / self.sigma_alpha
         dW = (dz - alpha[:, :-1] * self.dt) / self.sigma
@@ -115,7 +115,7 @@ class BrokerTrader(Game):
         alpha = exogenous['alpha'].cpu().numpy().astype(np.float64)
         dz = exogenous['dz'].cpu().numpy().astype(np.float64)
 
-        # Trader: state x = (alpha, Q^I), x_{j+1} = A x_j + B eta_j + noise; feedback eta_j = L_j x_j.
+        # Trader: state x = (α, Qᴵ), x_{j+1} = A x_j + B eta_j + noise; feedback eta_j = L_j x_j.
         A = np.array([[1 - self.kappa * dt, 0.0], [0.0, 1.0]])
         B = np.array([0.0, dt])
         reward = np.array([[0.0, 0.5], [0.5, -self.r_I]])
@@ -127,7 +127,7 @@ class BrokerTrader(Game):
             L[j] = -BSA / BSB
             S = reward * dt + A.T @ S @ A - np.outer(BSA, BSA) / BSB
 
-        # Broker, filter: Kalman filter of x = (alpha, Q^I) from the price increments dz = alpha dt + sigma dW,
+        # Broker, filter: Kalman filter of x = (α, Qᴵ) from the price increments dz = α dt + σ dW,
         # with the transition of x under the trader's feedback.
         H = np.array([1.0, 0.0])
         signal_noise = np.diag([self.sigma_alpha ** 2 * dt, 0.0])
@@ -140,7 +140,7 @@ class BrokerTrader(Game):
             gains.append(gain)
             transitions.append(transition)
 
-        # Broker, control: LQR in xi = (Qhat^B, alphahat, Qhat^I); feedback nu_j = L^B_j xi_j.
+        # Broker, control: LQR in ξ = (Q̂ᴮ, α̂, Q̂ᴵ); feedback nu_j = L^B_j xi_j.
         B_broker = np.array([dt, 0.0, 0.0])
         reward_broker = np.array([[-self.r_B, 0.5, 0.0], [0.5, 0.0, 0.0], [0.0, 0.0, 0.0]])
         S = np.diag([-self.phi, 0.0, 0.0])
@@ -156,8 +156,8 @@ class BrokerTrader(Game):
         # Controls along the paths.
         M = alpha.shape[0]
         QI = np.zeros(M)
-        estimate = np.zeros((M, 2))                     # (alphahat, Qhat^I) before step j
-        bought = np.zeros(M)                            # the broker's cumulative trades, so Qhat^B = bought - Qhat^I
+        estimate = np.zeros((M, 2))                     # (α̂, Q̂ᴵ) before step j
+        bought = np.zeros(M)                            # the broker's cumulative trades, so Q̂ᴮ = bought - Q̂ᴵ
         controls = np.zeros((M, 2, N))
         for j in range(N):
             controls[:, 0, j] = L[j, 0] * alpha[:, j] + L[j, 1] * QI

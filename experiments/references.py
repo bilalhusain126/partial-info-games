@@ -1,10 +1,10 @@
 """
-Exact equilibria of the two-trader game at lam = 1, 1.5 and 2, the references of the learned method at lam > 0.
+Exact equilibria of the two-trader game at λ = 1, 1.5 and 2, the references of the learned method at λ > 0.
 
-For each lam, the open-loop equilibrium among strategies linear in the own observed path is computed by
-games.two_traders.LinearStrategies, and written to references/two_traders_lam<lam>.npz with the controls on the
-validation paths ('controls', [M, 2, N]) and the coefficients ('beta'). Each solve starts from the solution at
-the previous lam, and raises if it does not converge.
+For each λ, the open-loop equilibrium among strategies linear in the own observed path is computed by
+games.two_traders.LinearStrategies, and written to references/two_traders_lam<λ>.npz with the controls on the
+validation paths ('controls', [M, 2, N]) and the coefficients ('β'). Each solve starts from the solution at
+the previous λ, and raises if it does not converge.
 
 Usage: python references.py
 """

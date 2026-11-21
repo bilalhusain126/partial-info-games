@@ -3,16 +3,16 @@ One run of the study: build the game, compute the open-loop equilibrium by the d
 with the reference, save the result.
 
 The reference of each game:
-    two traders, lam = 0           exact solution (TwoTraders.exact)
-    two traders, lam > 0           exact equilibrium from references/ (LinearStrategies)
-    Markov chain, lam = 0          exact solution (MarkovTraders.exact)
-    Markov chain, lam > 0          none; the first order condition residual is the check (--residual)
+    two traders, λ = 0           exact solution (TwoTraders.exact)
+    two traders, λ > 0           exact equilibrium from references/ (LinearStrategies)
+    Markov chain, λ = 0          exact solution (MarkovTraders.exact)
+    Markov chain, λ > 0          none; the first order condition residual is the check (--residual)
     broker-trader, major-minor     exact solution of the discretised game
 
 Writes results/<name>.json (all settings, errors, timing) and results/<name>.npz (the validation controls).
 A run whose JSON file exists is skipped.
 
-Usage: run.py --game two_traders --lam 1.0 --paths 50000 [--seed 0] [...]
+Usage: run.py --game two_traders --λ 1.0 --paths 50000 [--seed 0] [...]
 """
 
 import argparse

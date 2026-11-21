@@ -1,14 +1,14 @@
 """
 Two traders with private Markov-chain signals and a common price.
 
-The game of base.TradingGame with each signal alpha^i a two-state Markov chain on {-A, A}, switching at
-rate kappa, simulated exactly on the grid and observed by trader i only. The conditional expectation of
+The game of base.TradingGame with each signal αⁱ a two-state Markov chain on {-A, A}, switching at
+rate κ, simulated exactly on the grid and observed by trader i only. The conditional expectation of
 the other signal given the own observations is the Wonham filter, which is nonlinear in the observed path.
 The linear-strategy solver of two_traders therefore does not apply.
 
 Exact solution, used to validate the learned method:
-    MarkovTraders.exact     at lam = 0 the traders decouple. Each trader faces the signal
-                            alpha^i + E[alpha^j | F^i], with the conditional expectation from the exact
+    MarkovTraders.exact     at λ = 0 the traders decouple. Each trader faces the signal
+                            αⁱ + 𝔼[αʲ | ℱⁱ], with the conditional expectation from the exact
                             discrete Bayes filter of the other chain, and solves a single-agent problem
                             by a backward recursion.
 """
@@ -33,7 +33,7 @@ class MarkovTraders(TradingGame):
 
     @property
     def decay(self) -> float:
-        """exp(-2 kappa dt) = E[alpha_{t_{j+1}} | alpha_{t_j}] / alpha_{t_j} for the two-state chain."""
+        """exp(-2 κ dt) = 𝔼[alpha_{t_{j+1}} | alpha_{t_j}] / alpha_{t_j} for the two-state chain."""
         return math.exp(-2 * self.kappa * self.dt)
 
     def sample(self, n_paths, seed):
@@ -60,8 +60,8 @@ class MarkovTraders(TradingGame):
 
     def martingale_increments(self, exogenous):
         """
-        dW^S / sqrt(dt) and the compensated chain increments (alpha^i_{t_{j+1}} - decay alpha^i_{t_j}) / sqrt(dt),
-        which have zero mean given alpha^i_{t_j}.
+        dW^S / √dt and the compensated chain increments (αⁱ_{t_{j+1}} - decay αⁱ_{t_j}) / √dt,
+        which have zero mean given αⁱ_{t_j}.
         """
         increments = [exogenous['dWS'] / math.sqrt(self.dt)]
         for i in (1, 2):
@@ -71,16 +71,16 @@ class MarkovTraders(TradingGame):
 
     def exact(self, exogenous):
         """
-        Exact equilibrium at lam = 0, [M, 2, N].
+        Exact equilibrium at λ = 0, [M, 2, N].
 
-        Trader i faces the signal m_{t_j} = alpha^i_{t_j} + E[alpha^j_{t_j} | F^i_{t_j}], whose future
-        conditional means decay by exp(-2 kappa dt) per step. Its value function is quadratic in the
-        inventory, V_j(q) = A_j q^2 + B_j q + C_j, with B_j linear in the signal estimate, which gives the
+        Trader i faces the signal m_{t_j} = αⁱ_{t_j} + 𝔼[αʲ_{t_j} | ℱⁱ_{t_j}], whose future
+        conditional means decay by exp(-2 κ dt) per step. Its value function is quadratic in the
+        inventory, V_j(q) = A_j q² + B_j q + C_j, with B_j linear in the signal estimate, which gives the
         control nu_{t_j} = -G_j q_{t_j} - g_j m_{t_j}. The conditional expectation of the other chain is the
-        discrete Bayes filter from the price increments dS - alpha^i dt = alpha^j dt + sigma dW^S.
+        discrete Bayes filter from the price increments dS - αⁱ dt = αʲ dt + σ dW^S.
 
         Raises:
-            NotImplementedError: If lam != 0.
+            NotImplementedError: If λ ≠ 0.
         """
         if self.lam != 0.0:
             raise NotImplementedError('exact solution at lam = 0 only')
@@ -105,14 +105,14 @@ class MarkovTraders(TradingGame):
         M = alpha.shape[0]
         stay = 0.5 * (1 + r)
         amplitude, sigma = self.amplitude, self.sigma
-        probability = np.full((M, 2), 0.5)              # probability[:, i] = P(alpha^j = +A | F^i) before step j
+        probability = np.full((M, 2), 0.5)              # probability[:, i] = P(αʲ = +A | ℱⁱ) before step j
         q = np.zeros((M, 2))
         nu = np.zeros((M, 2, N))
         for j in range(N):
             estimate = amplitude * (2 * probability - 1)
             nu[:, :, j] = -G[j] * q - g[j] * (alpha[:, :, j] + estimate)
             q = q + nu[:, :, j] * dt
-            observed = alpha[:, ::-1, j] * dt + sigma * dWS[:, j, None]          # alpha^j dt + sigma dW^S
+            observed = alpha[:, ::-1, j] * dt + sigma * dWS[:, j, None]          # αʲ dt + σ dW^S
             likelihood_up = np.exp(-(observed - amplitude * dt) ** 2 / (2 * sigma ** 2 * dt))
             likelihood_down = np.exp(-(observed + amplitude * dt) ** 2 / (2 * sigma ** 2 * dt))
             posterior = probability * likelihood_up / (probability * likelihood_up + (1 - probability) * likelihood_down)

@@ -1,15 +1,15 @@
 """
 Martingale control variate for the regression targets.
 
-The target Lambda^i_{t_j} / (2 a_i) contains the future noise of the game, which has zero conditional mean given
+The target Λⁱ_{t_j} / (2 aᵢ) contains the future noise of the game, which has zero conditional mean given
 the player's information but makes the regression noisy. The control variate subtracts a learned estimate of that
 noise,
 
-    sum_{j' >= j} decay_i^{j' - j} zeta^i(t_{j'}, X_{t_{j'}}) . dW_{j'},
+    Σ_{j' ≥ j} decayᵢ^{j' - j} ζⁱ(t_{j'}, X_{t_{j'}}) · dW_{j'},
 
 where X is the full state, dW_{j'} are increments over [t_{j'}, t_{j'+1}] with zero conditional mean given the
-full state at t_{j'}, and zeta^i is a network fitted jointly with the control. Each term has zero conditional
-mean given F^i_{t_j}, so the conditional expectation, and hence the fixed point, are unchanged. Only the variance
+full state at t_{j'}, and ζⁱ is a network fitted jointly with the control. Each term has zero conditional
+mean given ℱⁱ_{t_j}, so the conditional expectation, and hence the fixed point, are unchanged. Only the variance
 of the target drops. The game supplies full_state, martingale_increments and cv_decay.
 """
 
@@ -20,7 +20,7 @@ from .utils import mlp
 
 
 class ControlVariate:
-    """The networks zeta^i and the weights decay_i^{j' - j} of the martingale term of each player."""
+    """The networks ζⁱ and the weights decayᵢ^{j' - j} of the martingale term of each player."""
 
     def __init__(self, game):
         """
@@ -29,13 +29,13 @@ class ControlVariate:
                 and cv_decay.
         """
         self.game = game
-        self.zetas =[mlp(1 + game.full_dim, game.noise_dim) for _ in range(game.n_players)]
+        self.zetas = [mlp(1 + game.full_dim, game.noise_dim) for _ in range(game.n_players)]
         later, now = np.indices((game.N, game.N))
         self.weights = [torch.tensor(np.where(later >= now, decay ** (later - now), 0.0), dtype=torch.float32)
                         for decay in game.cv_decay]
 
     def parameters(self, players) -> list:
-        """Parameters of the networks zeta^i of the given players."""
+        """Parameters of the networks ζⁱ of the given players."""
         return [p for i in players for p in self.zetas[i].parameters()]
 
     def inputs(self, state: dict, exogenous: dict, t: torch.Tensor):
