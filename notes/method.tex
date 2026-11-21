@@ -112,7 +112,7 @@ We write $L^2(\F^i_t)$ for the space of square integrable $\F^i_t$-measurable ra
   \label{eq:projection}
   \E[\Lambda^i_t \mid \F^i_t] = \operatorname*{argmin}_{\zeta \in L^2(\F^i_t)} \; \E\big[ |\zeta - \Lambda^i_t|^2 \big] .
 \end{equation}
-Every element of $L^2(\F^i_t)$ is a function of the observed path $(O^i_s)_{s \le t}$. On each simulated path, $\Lambda^i_t$ can be evaluated, since the whole future is known. Thus, the conditional expectation can be approximated by fitting a function of the observed path to these values by minimizing a mean squared error. We represent the function by a recurrent neural network $\mathcal{N}^i(\cdot\,; \theta^i)$, which takes the increments of $O^i$ as input and returns the control at each time step.
+Every element of $L^2(\F^i_t)$ is a function of the observed path $(O^i_s)_{s \le t}$. On each simulated path, $\Lambda^i_t$ can be evaluated, since the whole future is known. Thus, the conditional expectation can be approximated by fitting a function of the observed path to these values by minimizing a mean squared error. We represent the function by a neural network $\mathcal{N}^i(\cdot\,; \theta^i)$. A gated recurrent unit (GRU) takes the increments of $O^i$ as input and returns a summary $h^i_j$ of the observed path up to $t_j$. A feedforward network maps $(t_j, O^i_{t_j}, h^i_j)$ to the control at $t_j$.
 
 To do so numerically, fix a time grid $t_j = j \Delta t$, $j = 0, \dots, N$, with $\Delta t = T/N$. We simulate $M$ paths of $X$ by the Euler--Maruyama scheme, and evaluate $\Lambda^i_{t_j}$ along each path $m$ by a Riemann sum. We denote the result by $\Lambda^{i,(m)}_j$. The parameters of $\mathcal{N}^i$ minimize
 \begin{equation}
@@ -145,7 +145,7 @@ The network of player $i$ takes only $O^i$ as input. The unobserved processes, i
 
 The computational procedure is as follows.
 \begin{enumerate}[itemsep=4pt]
-    \item \textit{Initialization:} Fix the time grid $t_j = j \Delta t$, $j = 0, \dots, N$. For each player $i$, create a recurrent network $\mathcal{N}^i(\cdot\,; \theta^{i,(0)})$ with randomly initialized parameters.
+    \item \textit{Initialization:} Fix the time grid $t_j = j \Delta t$, $j = 0, \dots, N$. For each player $i$, create a network $\mathcal{N}^i(\cdot\,; \theta^{i,(0)})$ with randomly initialized parameters.
 
     \item \textit{Picard iteration loop:} For $k = 0, 1, \dots, K - 1$:
         \begin{enumerate}[label=(\alph*), itemsep=4pt]
@@ -154,8 +154,6 @@ The computational procedure is as follows.
             \item \textit{Targets:} For every player $i$, path $m$ and time step $t_j$, evaluate the pathwise functional $\Lambda^{i,(m,k)}_j$ of \eqref{eq:control} by a Riemann sum along the path.
 
             \item \textit{Regression:} For every player $i$, initialize $\mathcal{N}^i(\cdot\,; \theta^{i,(k+1)})$ with the parameters $\theta^{i,(k)}$ and train it on the inputs $\{O^{i,(m)}_{[0, t_j]}\}$ and the targets $\{(1 - \rho)\, u^{i,(m,k)}_{t_j} + \tfrac{\rho}{2 a_i} \Lambda^{i,(m,k)}_j\}$ by minimizing the mean squared error \eqref{eq:loss}.
-
-            \item \textit{Convergence check:} Simulate validation paths with the new networks and compute the root mean square change of the controls between iterations $k$ and $k + 1$. Stop if it falls below a tolerance $\epsilon_{\mathrm{tol}}$.
         \end{enumerate}
 
     \item \textit{Return:} Return the networks $\mathcal{N}^i(\cdot\,; \theta^{i,(K)})$.
