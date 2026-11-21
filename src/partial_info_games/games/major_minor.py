@@ -8,7 +8,7 @@ Dynamics and observations:
 Information. The major player (0) observes y^0 and the minor player (1) observes y^1. Neither observes the
 other's observation path, and the minor player must estimate the major player's own estimate of x^0.
 
-Costs, with discount rate rho:
+Costs, with discount rate rho (each player's reward is minus its cost):
     J^0 = E int_0^T e^{-rho t} [ Q0 (x^0_t - eta0)^2 + R0 (u^0_t)^2 ] dt,
     J^1 = E int_0^T e^{-rho t} [ Q1 (x^1_t - H x^0_t - eta1)^2 + R1 (u^1_t)^2 ] dt.
 
@@ -123,7 +123,7 @@ class MajorMinor(Game):
 
     @property
     def cv_decay(self) -> list:
-        """Decay per step of each player's cost sensitivity to the state, which weights the control variate."""
+        """Decay per step of each player's reward sensitivity to the state, which weights the control variate."""
         return [self.discount * (1 + self.A0 * self.dt), self.discount * (1 + self.A1 * self.dt)]
 
     def sample(self, n_paths, seed):
@@ -170,14 +170,14 @@ class MajorMinor(Game):
         """Discount factors exp(-rho t_j), [N]."""
         return torch.tensor(np.exp(-self.rho * np.arange(self.N) * self.dt), dtype=torch.float32)
 
-    def cost(self, i, state, exogenous, controls):
-        """Realised discounted cost of player i."""
+    def reward(self, i, state, exogenous, controls):
+        """Realised reward of player i: minus its discounted cost."""
         x0, x1 = state['x0'][:, :-1], state['x1'][:, :-1]
         if i == 0:
             running = self.Q0 * (x0 - self.eta0) ** 2 + self.R0 * controls[0] ** 2
         else:
             running = self.Q1 * (x1 - self.H * x0 - self.eta1) ** 2 + self.R1 * controls[1] ** 2
-        return (running * self.discounting()).sum(1) * self.dt
+        return -(running * self.discounting()).sum(1) * self.dt
 
     def curvature(self, i):
         """2 R_i exp(-rho t_j) dt."""

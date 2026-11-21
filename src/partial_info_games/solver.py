@@ -17,11 +17,10 @@ in which each conditional expectation is approximated by a recurrent network of 
 observed path, fitted by minimizing a mean squared error over simulated paths (note, Section 1.4).
 
 Contents:
-    Solver                   the damped Picard iteration, open loop and closed loop
+    Solver                   the damped Picard iteration
     first_order_residual     a check of the first order condition at the computed equilibrium
 
-Games implement games.base.Game. Costs are minimized: the cost of player i is minus the reward J^i
-of the note.
+Games implement games.base.Game.
 """
 
 import copy
@@ -42,7 +41,7 @@ class Solver:
     Each iteration k:
         1. Forward simulation. Simulate M paths of the game under the current controls u^(k).
         2. Targets. Evaluate Lambda^i / (2 a_i) along each path for every player i, by differentiating
-           the realised cost with respect to the player's own control (Solver.targets).
+           the realised reward with respect to the player's own control (Solver.targets).
         3. Regression. Fit the network of each player to the damped target
                (1 - rho) u^{i,(k)} + (rho / 2 a_i) Lambda^i
            by minimizing the mean squared error over the paths, with the player's own observed path as
@@ -92,7 +91,7 @@ class Solver:
     # Step 1: forward simulation
     # --------------------------------------------------------------------------
 
-    def simulate(self, exogenous: dict, fixed: dict = None, live=()):
+    def simulate(self, exogenous: dict, fixed: dict = None):
         """
         Simulates the game on the given paths, by the Euler--Maruyama scheme with the controls given by
         the networks at each step (note, Section 1.4).
@@ -100,9 +99,8 @@ class Solver:
         Args:
             exogenous: Exogenous processes of M paths (game.sample).
             fixed: {player: controls [M, N]} for players whose controls are given instead of computed by
-                their networks. Default none.
-            live: Players whose network outputs keep the computational graph (for differentiation
-                through the network). Other outputs are detached. Default none.
+                their networks (Solver.targets fixes all of them, to differentiate the rewards with respect
+                to the controls). Default none. The outputs of the networks are not differentiated.
 
         Returns:
             state: The state paths (game.initial_state, filled in).
@@ -117,7 +115,7 @@ class Solver:
         hidden = [None if c.gru is None else torch.zeros(1, M, c.width) for c in self.controls]
         controls = [[] for _ in self.controls]
         increments = [[] for _ in self.controls]
-        needs_graph = bool(live) or any(u.requires_grad for u in fixed.values())
+        needs_graph = any(u.requires_grad for u in fixed.values())
         with torch.set_grad_enabled(needs_graph):
             for j in range(game.N):
                 u = {}
@@ -126,9 +124,7 @@ class Solver:
                         u[i] = fixed[i][:, j]
                     else:
                         memory = None if control.gru is None else hidden[i][0]
-                        u[i] = control(self.t[j].expand(M, 1), game.observe(i, state, exogenous, j), memory)
-                        if i not in live:
-                            u[i] = u[i].detach()
+                        u[i] = control(self.t[j].expand(M, 1), game.observe(i, state, exogenous, j), memory).detach()
                     controls[i].append(u[i])
                 game.step(state, exogenous, u, j)
                 # Feed the observation increments over [t_j, t_{j+1}] to the GRUs.
@@ -136,9 +132,7 @@ class Solver:
                     if control.gru is not None and i not in fixed:
                         increment = game.increment(i, state, exogenous, j)
                         increments[i].append(increment)
-                        hidden[i] = control.gru(increment[:, None], hidden[i])[1]
-                        if i not in live:
-                            hidden[i] = hidden[i].detach()
+                        hidden[i] = control.gru(increment[:, None], hidden[i])[1].detach()
         controls = [torch.stack(c, 1) for c in controls]
         increments = [torch.stack(c, 1) if c else None for c in increments]
         return state, controls, increments
@@ -147,46 +141,37 @@ class Solver:
     # Step 2: targets
     # --------------------------------------------------------------------------
 
-    def targets(self, exogenous: dict, controls: list, closed: bool = False) -> list:
+    def targets(self, exogenous: dict, controls: list) -> list:
         """
         Evaluates Lambda^i / (2 a_i) along each path for every player, the quantity inside the conditional
         expectation of the operator Psi (note, Section 1.3).
 
-        The derivative of the realised reward is G^i = -2 a_i u^i + Lambda^i (note, Section 1.2), and the
-        cost is minus the reward. Hence Lambda^i / (2 a_i) = u^i - (d cost / d u^i) / (2 a_i). The
-        derivative is computed by automatic differentiation of the realised cost with respect to the
-        player's own controls, in chunks of 4096 paths, and game.curvature(i) supplies 2 a_i dt.
+        The derivative of the realised reward R^i with respect to u^i_t is G^i_t = -2 a_i u^i_t + Lambda^i_t
+        (note, Section 1.2), so Lambda^i / (2 a_i) = u^i + G^i / (2 a_i). In the open loop the other players'
+        controls are held fixed as processes, so the game is simulated once with every player's controls
+        fixed at their current values. Each G^i is the derivative of R^i with respect to u^i on that one
+        simulation, by automatic differentiation, in chunks of 4096 paths. game.curvature(i) supplies
+        2 a_i dt, the scaling of the derivative on the grid.
 
         Args:
             exogenous: Exogenous processes of the paths.
             controls: Current controls, list of [M, N] tensors.
-            closed: Open loop (default): the other players' controls are held fixed as processes.
-                Closed loop: the other players act through their networks, so their controls respond to
-                player i through their observations.
 
         Returns:
             List of [M, N] targets, one per player.
         """
         game = self.game
         M = controls[0].shape[0]
-        all_targets = []
-        for i in range(game.n_players):
-            target = torch.zeros_like(controls[i])
-            for start in range(0, M, 4096):
-                index = torch.arange(start, min(start + 4096, M))
-                part = subset(exogenous, index)
-                own = controls[i][index].detach().clone().requires_grad_(True)
-                if closed:
-                    fixed = {i: own}
-                    live = set(range(game.n_players)) - {i}
-                else:
-                    fixed = {j: (own if j == i else c[index].detach()) for j, c in enumerate(controls)}
-                    live = ()
-                state, used, _ = self.simulate(part, fixed, live)
-                cost = game.cost(i, state, part, used).sum()
-                gradient, = torch.autograd.grad(cost, own)
-                target[index] = (own - gradient / game.curvature(i)).detach()
-            all_targets.append(target)
+        all_targets = [torch.zeros_like(c) for c in controls]
+        for start in range(0, M, 4096):
+            index = torch.arange(start, min(start + 4096, M))
+            part = subset(exogenous, index)
+            fixed = {i: c[index].detach().clone().requires_grad_(True) for i, c in enumerate(controls)}
+            state, used, _ = self.simulate(part, fixed)
+            for i in range(game.n_players):
+                reward = game.reward(i, state, part, used).sum()
+                gradient, = torch.autograd.grad(reward, fixed[i], retain_graph=i < game.n_players - 1)
+                all_targets[i][index] = (fixed[i] + gradient / game.curvature(i)).detach()
         return all_targets
 
     # --------------------------------------------------------------------------
@@ -248,7 +233,7 @@ class Solver:
     # The iteration
     # --------------------------------------------------------------------------
 
-    def run(self, iterations: int, average_from: int = 4, reference: list = None, closed: bool = False, log=report):
+    def run(self, iterations: int, average_from: int = 4, reference: list = None, log=report):
         """
         Runs the damped Picard iteration (note, Algorithm 1).
 
@@ -256,7 +241,6 @@ class Solver:
             iterations: Number K of iterations.
             average_from: First iteration included in the average of the validation controls. Default 4.
             reference: Reference validation controls, list of [M, N] tensors, for the error log. Default none.
-            closed: Whether to use the closed-loop targets. Default False (open loop).
             log: Function that receives one progress line per iteration.
 
         Returns:
@@ -268,7 +252,7 @@ class Solver:
         start = time.time()
         for k in range(iterations):
             state, controls, increments = self.simulate(self.training)
-            targets = self.targets(self.training, controls, closed)
+            targets = self.targets(self.training, controls)
             damped = [(1 - self.damping) * u + self.damping * target for u, target in zip(controls, targets)]
             loss = self.fit(self.training, state, increments, damped, self.damping)
             _, validation, _ = self.simulate(self.validation)

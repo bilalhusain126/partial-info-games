@@ -12,9 +12,9 @@ finite-dimensional filter closes this hierarchy.
 Exact solutions, used to validate the learned method:
     TwoTraders.exact     at lam = 0 the traders decouple, and each solves a discrete LQG problem with the
                          Kalman filter of the other signal.
-    LinearStrategies     at lam > 0, the equilibrium among strategies linear in the own observed path,
-                         open or closed loop. In this Gaussian game a best response to a linear strategy is
-                         linear, so this is the equilibrium of the game.
+    LinearStrategies     at lam > 0, the open-loop equilibrium among strategies linear in the own observed
+                         path. In this Gaussian game a best response to a linear strategy is linear, so this
+                         is the equilibrium of the game.
 """
 
 import math
@@ -128,7 +128,7 @@ class TwoTraders(TradingGame):
 
 class LinearStrategies:
     """
-    Exact equilibria of a TwoTraders game among strategies linear in the own observed path,
+    Exact open-loop equilibrium of a TwoTraders game among strategies linear in the own observed path,
 
         nu^i_{t_j} = sum_{k <= j} ( beta^i[j, k, 0] alpha^i_{t_k} + beta^i[j, k, 1] S_{t_k} ).
 
@@ -136,11 +136,8 @@ class LinearStrategies:
     at each step, the increments of the two signal noises and of the price exogenous, at unit variance. Every
     process is linear in e and is represented by its loading vector, so E[x y] = x . y and the expected
     cost of each trader is computed exactly, without simulation. Each best response is computed by L-BFGS
-    over the trader's coefficients, and the equilibrium by a damped best-response iteration.
-
-    Open loop: in each best response the other trader's control is held fixed as a process, as in the
-    open-loop equilibrium of the note. Closed loop: the other trader's coefficients are held fixed, so
-    its control responds to trader i through the price.
+    over the trader's coefficients, with the other trader's control held fixed as a process (the open
+    loop of the note), and the equilibrium by a damped best-response iteration.
 
     All computations are in float64 on the CPU.
     """
@@ -176,7 +173,7 @@ class LinearStrategies:
         Args:
             beta: Coefficients [2, N, N, 2].
             own: With other_control, the trader whose control follows beta; the other trader's control is
-                held fixed at other_control (open loop). Default none.
+                held fixed at other_control. Default none.
             other_control: Loadings of the other trader's control [N, K].
 
         Returns:
@@ -199,34 +196,34 @@ class LinearStrategies:
         mu = self.signal_loadings[0, :N] + self.signal_loadings[1, :N] + game.lam * (controls[0] + controls[1])
         return controls, q, mu
 
-    def cost(self, i: int, beta, other_control=None):
+    def cost(self, i: int, beta, other_control):
         """
         Expected cost of trader i (minus the reward J^i), computed from the loadings.
 
         Args:
             i: The trader.
-            beta: Coefficients [2, N, N, 2].
-            other_control: If given, the other trader's control is held fixed at these loadings (open loop).
+            beta: Coefficients [2, N, N, 2]; only beta[i] is used.
+            other_control: Loadings of the other trader's control [N, K], held fixed.
         """
         game = self.game
-        controls, q, mu = self.forward(beta * self.causal, None if other_control is None else i, other_control)
+        controls, q, mu = self.forward(beta * self.causal, i, other_control)
         running = -(q[i, :-1] * mu).sum(-1) + game.a * (controls[i] ** 2).sum(-1) + game.phi * (q[i, :-1] ** 2).sum(-1)
         return running.sum() * game.dt + game.psi * (q[i, -1] ** 2).sum()
 
-    def best_response(self, beta, i: int, closed: bool, inner: int = 200):
+    def best_response(self, beta, i: int, inner: int = 200):
         """
-        Coefficients of trader i that minimize its expected cost, by L-BFGS from beta[i].
+        Coefficients of trader i that minimize its expected cost, by L-BFGS from beta[i], with the other
+        trader's control under beta held fixed as a process.
 
         Args:
             beta: Current coefficients [2, N, N, 2].
             i: The trader.
-            closed: Closed loop (the other trader's coefficients fixed) or open loop (its control fixed).
             inner: Maximum number of L-BFGS iterations. Default 200.
 
         Returns:
             Coefficients [N, N, 2].
         """
-        other_control = None if closed else self.forward(beta * self.causal)[0][1 - i].detach()
+        other_control = self.forward(beta * self.causal)[0][1 - i].detach()
         coefficients = beta[i].detach().clone().requires_grad_(True)
         optimizer = torch.optim.LBFGS([coefficients], max_iter=inner, tolerance_grad=1e-9, tolerance_change=1e-12,
                                       line_search_fn='strong_wolfe')
@@ -240,12 +237,11 @@ class LinearStrategies:
         optimizer.step(closure)
         return (coefficients * self.causal).detach()
 
-    def solve(self, closed: bool, iterations: int = 150, damping: float = 0.5, start=None, tolerance: float = 1e-6):
+    def solve(self, iterations: int = 150, damping: float = 0.5, start=None, tolerance: float = 1e-6):
         """
         Damped best-response iteration beta <- (1 - damping) beta + damping BR(beta).
 
         Args:
-            closed: Closed-loop or open-loop equilibrium.
             iterations: Maximum number of iterations. Default 150.
             damping: Weight of the best response. Default 0.5.
             start: Initial coefficients [2, N, N, 2]. Default zero.
@@ -260,7 +256,7 @@ class LinearStrategies:
         N = self.game.N
         beta = torch.zeros(2, N, N, 2, **FLOAT64_CPU) if start is None else torch.as_tensor(start, **FLOAT64_CPU).clone()
         for _ in range(iterations):
-            responses = torch.stack([self.best_response(beta, i, closed) for i in range(2)])
+            responses = torch.stack([self.best_response(beta, i) for i in range(2)])
             change = float((responses - beta).norm() / max(1.0, float(responses.norm())))
             beta = (1 - damping) * beta + damping * responses
             if change < tolerance:

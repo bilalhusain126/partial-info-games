@@ -172,3 +172,4 @@ Seeds at 64k (mean +- spread over seeds 0-2, player 1 / player 2): two traders l
 
 - The broker-trader game: the broker observes the price increments only (before: also the Kalman estimate of the signal and the transient impact); the trader observes (alpha, Q^I) (before: also Q^B, Y and the Kalman estimate). The broker numbers above are not comparable with the rewrite.
 - The Bergault and Sanchez-Betancourt game and the strong-coupling Wu-Jaimungal runs were dropped; their scripts are at the last commit before the rewrite.
+- The closed-loop solvers (gradient play, closed-loop Picard), the closed-loop references and the linear-strategy baseline were removed from the repository to keep it to the open-loop method and the benchmarks; they are at commit cc97a64.

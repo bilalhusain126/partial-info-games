@@ -10,8 +10,7 @@ at an exact equilibrium, and the sampling error falls as n_paths grows (about 5-
 up to 2N + 4 features per time). The regression uses a richer set of features than any exact solution,
 so the check does not presuppose its form.
 
-Checked: the exact solutions of the four games, and the two-trader linear-class references at
-lam = 1, 1.5 and 2 (open loop).
+Checked: the exact solutions of the four games, and the two-trader references at lam = 1, 1.5 and 2.
 
 Usage: python checks.py [n_paths]   (default 32768)
 """
@@ -73,5 +72,5 @@ for game in (TwoTraders(lam=0.0), MarkovTraders(lam=0.0), BrokerTrader(), MajorM
 for lam in (1.0, 1.5, 2.0):
     game = TwoTraders(lam=lam)
     linear_solver = LinearStrategies(game)
-    beta = np.load(HERE / 'references' / f'two_traders_lam{lam}.npz')['beta_open']
-    show(f'TwoTraders lam {lam}, linear class, open loop', residual(game, lambda exogenous: linear_solver.controls(beta, exogenous)))
+    beta = np.load(HERE / 'references' / f'two_traders_lam{lam}.npz')['beta']
+    show(f'TwoTraders lam {lam}, reference', residual(game, lambda exogenous: linear_solver.controls(beta, exogenous)))

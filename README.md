@@ -28,10 +28,9 @@ by minimizing a mean squared error over simulated paths. No filter is computed.
 Each example has an exact solution of the discretised game, used only to validate the method.
 
 * **Two traders with private signals.** Each trader observes a private Ornstein–Uhlenbeck signal and a common
-  price that both traders move. The exact equilibrium, open and closed loop, is computed among strategies
-  linear in the observed path.
-* **Two traders with private Markov-chain signals.** The filter is nonlinear. Exact solution at $\lambda = 0$,
-  and the equilibrium among linear strategies as a baseline.
+  price that both traders move. The exact equilibrium is computed among strategies linear in the observed
+  path, which contain it in this Gaussian game.
+* **Two traders with private Markov-chain signals.** The filter is nonlinear. Exact solution at $\lambda = 0$.
 * **Broker and informed trader**, without transient impact.
 * **Major and minor player**, both partially observed.
 
@@ -39,10 +38,8 @@ Each example has an exact solution of the discretised game, used only to validat
 
 ```
 src/partial_info_games/
-    solver.py             damped Picard iteration (open and closed loop), first order condition check
+    solver.py             damped Picard iteration, first order condition check
     control.py            the network of each player
-    gradient_play.py      gradient play, for closed-loop equilibria
-    linear_baseline.py    equilibrium among controls linear in the observed path
     utils.py              device, validation paths, errors, iterate averaging
     plotting.py           plot style and figures
     games/                the game interface (base.py) and one module per game with its exact solution
@@ -67,5 +64,5 @@ cd experiments/cluster
 ./submit.sh budget
 ```
 
-The stages are `budget`, `seeds`, `control_variate`, `width`, `damping`, `linear` and `closed_loop`.
+The stages are `budget`, `seeds`, `control_variate`, `width`, `damping` and `coupling`.
 `notebooks/results.ipynb` reads the saved runs from `experiments/results/`.

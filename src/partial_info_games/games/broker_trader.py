@@ -9,7 +9,7 @@ Dynamics:
 Information. The informed trader (player 0) observes (alpha, Q^I). The broker (player 1) observes the
 price path only; it must infer both the signal and the trader's inventory from the prices.
 
-Rewards (the code minimizes their negatives):
+Rewards:
     J^I = E[ int_0^T ( Q^I_t alpha_t - b eta_t^2 - r_I (Q^I_t)^2 ) dt - psi (Q^I_T)^2 ],
     J^B = E[ int_0^T ( Q^B_t alpha_t - a nu_t^2 - r_B (Q^B_t)^2 ) dt - phi (Q^B_T)^2 ].
 
@@ -87,15 +87,15 @@ class BrokerTrader(Game):
         """Price increment over [t_j, t_{j+1}], divided by sqrt(dt)."""
         return exogenous['dz'][:, j:j + 1] / math.sqrt(self.dt)
 
-    def cost(self, i, state, exogenous, controls):
-        """Minus the realised reward of the trader (i = 0) or the broker (i = 1)."""
+    def reward(self, i, state, exogenous, controls):
+        """Realised reward of the trader (i = 0) or the broker (i = 1)."""
         alpha = exogenous['alpha'][:, :-1]
         if i == 0:
             Q, trading_cost, running_penalty, terminal_penalty = state['QI'], self.b, self.r_I, self.psi
         else:
             Q, trading_cost, running_penalty, terminal_penalty = state['QB'], self.a, self.r_B, self.phi
         running = (Q[:, :-1] * alpha - trading_cost * controls[i] ** 2 - running_penalty * Q[:, :-1] ** 2).sum(1) * self.dt
-        return -(running - terminal_penalty * Q[:, -1] ** 2)
+        return running - terminal_penalty * Q[:, -1] ** 2
 
     def curvature(self, i):
         """2 b dt for the trader, 2 a dt for the broker."""

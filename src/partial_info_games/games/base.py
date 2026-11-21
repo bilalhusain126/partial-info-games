@@ -3,8 +3,8 @@ Abstract base class for the games, and the shared part of the two trading games.
 
 A game is defined on the grid t_j = j dt, j = 0, ..., N, with dt = T / N (note, Section 1.4). It
 supplies the simulator of the state X (note, Section 1.1), the observations O^i of each player, the
-realised cost of each player (minus the reward of the note), and the curvature 2 a_i dt of the cost in
-the player's own control, from which the solver builds the targets Lambda^i / (2 a_i).
+realised reward R^i of each player, and the curvature 2 a_i dt of the reward in the player's own control,
+from which the solver builds the targets Lambda^i / (2 a_i).
 """
 
 import math
@@ -26,7 +26,7 @@ class Game(ABC):
         increment_dims:    per player, the dimension of the observation increments (the GRU input)
         full_dim:          dimension of the full state X_t (the input of the control variate)
         noise_dim:         number of martingale increments per step (the factors of the control variate)
-        cv_decay:          per player, the decay per step of the cost sensitivity: Lambda^i_{t_j} depends on
+        cv_decay:          per player, the decay per step of the reward sensitivity: Lambda^i_{t_j} depends on
                            the increment at t_{j'} > t_j with weight proportional to decay^(j' - j)
     """
 
@@ -66,12 +66,12 @@ class Game(ABC):
         """Observation increment of player i over [t_j, t_{j+1}], rescaled to order one, [M, increment_dims[i]]."""
 
     @abstractmethod
-    def cost(self, i: int, state: dict, exogenous: dict, controls: list) -> torch.Tensor:
-        """Realised cost of player i along each path (minus the reward of the note), [M]."""
+    def reward(self, i: int, state: dict, exogenous: dict, controls: list) -> torch.Tensor:
+        """Realised reward R^i of player i along each path (note, Section 1.2), [M]."""
 
     @abstractmethod
     def curvature(self, i: int) -> torch.Tensor:
-        """Second derivative of the realised cost in player i's control at each t_j (2 a_i dt), [N]."""
+        """Minus the second derivative of the realised reward in player i's control at each t_j (2 a_i dt), [N]."""
 
     @abstractmethod
     def full_state(self, state: dict, exogenous: dict) -> torch.Tensor:
@@ -106,7 +106,7 @@ class TradingGame(Game):
     The signals come from the subclass (Ornstein--Uhlenbeck in TwoTraders, Markov chains in MarkovTraders).
     They are private: trader i observes O^i = (alpha^i, q^i, S).
 
-    Reward of trader i (the code minimizes its negative):
+    Reward of trader i:
         J^i = E[ int_0^T ( q^i_t mu_t - a (nu^i_t)^2 - phi (q^i_t)^2 ) dt - psi (q^i_T)^2 ].
     The first order condition (note, Section 1.2, with a_i = a) is
         2 a nu^i_t = E[ lam q^i_t - 2 psi q^i_T + int_t^T ( mu_s - 2 phi q^i_s ) ds | F^i_t ],
@@ -153,11 +153,11 @@ class TradingGame(Game):
         price_increment = (S[:, j + 1] - S[:, j]) / math.sqrt(self.dt)
         return torch.stack([self.signal_increment(exogenous[f'alpha{i + 1}'], j), price_increment], -1)
 
-    def cost(self, i, state, exogenous, controls):
-        """Minus the realised reward of trader i."""
+    def reward(self, i, state, exogenous, controls):
+        """Realised reward of trader i."""
         q = state[f'q{i + 1}']
         running = (q[:, :-1] * state['mu'] - self.a * controls[i] ** 2 - self.phi * q[:, :-1] ** 2).sum(1) * self.dt
-        return -(running - self.psi * q[:, -1] ** 2)
+        return running - self.psi * q[:, -1] ** 2
 
     def curvature(self, i):
         """2 a dt."""
