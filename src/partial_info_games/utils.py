@@ -62,7 +62,7 @@ def mlp(n_in: int, n_out: int, width: int = 64) -> nn.Module:
 
 class RunningAverage:
     """
-    Average of the validation controls over Picard iterations (iterate averaging, note Section 1.5).
+    Average of the validation controls over Picard iterations (iterate averaging).
 
     The average over the last iterates is reported instead of the last iterate. It reduces the
     iteration-to-iteration fluctuation caused by the regression noise.

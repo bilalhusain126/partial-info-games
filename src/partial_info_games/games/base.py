@@ -1,8 +1,8 @@
 """
 Abstract base class for the games, and the shared part of the two trading games.
 
-A game is defined on the grid t_j = j dt, j = 0, ..., N, with dt = T / N (note, Section 1.4). It
-supplies the simulator of the state X (note, Section 1.1), the observations O^i of each player, the
+A game is defined on the grid t_j = j dt, j = 0, ..., N, with dt = T / N. It
+supplies the simulator of the state X, the observations O^i of each player, the
 realised reward R^i of each player, and the curvature 2 a_i dt of the reward in the player's own control,
 from which the solver builds the targets Lambda^i / (2 a_i).
 """
@@ -67,7 +67,7 @@ class Game(ABC):
 
     @abstractmethod
     def reward(self, i: int, state: dict, exogenous: dict, controls: list) -> torch.Tensor:
-        """Realised reward R^i of player i along each path (note, Section 1.2), [M]."""
+        """Realised reward R^i of player i along each path, [M]."""
 
     @abstractmethod
     def curvature(self, i: int) -> torch.Tensor:
@@ -108,7 +108,7 @@ class TradingGame(Game):
 
     Reward of trader i:
         J^i = E[ int_0^T ( q^i_t mu_t - a (nu^i_t)^2 - phi (q^i_t)^2 ) dt - psi (q^i_T)^2 ].
-    The first order condition (note, Section 1.2, with a_i = a) is
+    The first order condition of the note, with a_i = a, is
         2 a nu^i_t = E[ lam q^i_t - 2 psi q^i_T + int_t^T ( mu_s - 2 phi q^i_s ) ds | F^i_t ],
     so Lambda^i_t = lam q^i_t - 2 psi q^i_T + int_t^T ( mu_s - 2 phi q^i_s ) ds.
     """

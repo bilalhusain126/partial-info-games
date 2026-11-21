@@ -1,7 +1,7 @@
 """
 Independent checks of the exact references: each must satisfy the first order condition of the note.
 
-At an open-loop equilibrium, u^i_t = (1 / 2 a_i) E[ Lambda^i_t | F^i_t ] for every player (note, Section 1.2).
+At an open-loop equilibrium, u^i_t = (1 / 2 a_i) E[ Lambda^i_t | F^i_t ] for every player.
 For each reference, the exact controls are fed to Solver.targets on fresh paths, which gives
 Lambda^i / (2 a_i) along each path. The difference target - control is regressed at each t_j on the
 player's information (1, current observation, all past observation increments). Its projection is the

@@ -1,5 +1,5 @@
 """
-The control of one player: the network N^i of the note (Section 1.4).
+The control of one player: the network N^i of the note.
 """
 
 import torch
@@ -10,7 +10,7 @@ from .utils import mlp
 
 class Control(nn.Module):
     """
-    The network N^i of player i (note, Section 1.4).
+    The network N^i of player i.
 
     The control at t_j is a function of the observed path O^i on [0, t_j]:
 
