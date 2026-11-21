@@ -58,5 +58,7 @@ for lam in os.environ.get('LAMS', '1.0,1.5,2.0').split(','):
             rows.append(-np.linalg.pinv(H.numpy(), rcond=1e-10) @ C.numpy())
         Jmap = np.vstack(rows); eig = np.linalg.eigvals(Jmap)
         rho = np.abs(eig).max(); emin = eig[np.argmin(eig.real)]; emax = eig[np.argmax(eig.real)]
+        top = eig[np.argsort(-np.abs(eig))[:6]]; d = float(os.environ.get('DAMP', '0.5')); damped = np.abs(1 - d + d * eig).max()
+        print(f'lam={lam} {kind}: leading eigenvalues ' + ', '.join(f'{z.real:+.3f}{z.imag:+.3f}i' for z in top) + f'; damped map (damping {d}) factor {damped:.4f}', flush=True)
         print(f'lam={lam} {kind:6s}: spectral radius {rho:.3f}; eigenvalue of smallest real part {emin.real:+.3f}{emin.imag:+.3f}i, largest real part {emax.real:+.3f}; '
               f'own Hessian smallest nonzero eig {hmin[0][0]:.2e} / max {hmin[0][2]:.2e} ({hmin[0][1]} zero) ({time.time()-t0:.0f}s)', flush=True)
